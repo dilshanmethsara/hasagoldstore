@@ -1,0 +1,17 @@
+# Ignore backend folder when deploying frontend
+backend/
+
+# Node
+node_modules/
+
+# Environment
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+
+# Git
+.git/
+.gitignore
