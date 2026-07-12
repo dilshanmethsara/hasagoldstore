@@ -13,28 +13,41 @@ export class UserService {
       throw new ApiError('USER_NOT_FOUND', 'User not found');
     }
 
-    if (!user.profile) {
-      // Auto-create a profile if it is missing
-      let username = user.email.split('@')[0];
-      
-      // Ensure username uniqueness in the database
-      const existing = await prisma.profile.findUnique({
-        where: { username },
-      });
-      if (existing) {
-        username = `${username}_${Math.floor(1000 + Math.random() * 9000)}`;
-      }
+    if (!user.profile || !user.profile.displayName || !user.profile.username) {
+      // Auto-create or repair profile if it is missing or has empty fields
+      let username = user.profile?.username || user.email.split('@')[0];
+      let displayName = user.profile?.displayName || username;
 
-      const displayName = username;
-      const newProfile = await prisma.profile.create({
-        data: {
-          userId: user.id,
-          displayName,
-          username,
-          status: user.status,
-        },
-      });
-      return newProfile;
+      if (!user.profile) {
+        // Ensure username uniqueness in the database
+        const existing = await prisma.profile.findUnique({
+          where: { username },
+        });
+        if (existing) {
+          username = `${username}_${Math.floor(1000 + Math.random() * 9000)}`;
+          displayName = username;
+        }
+
+        const newProfile = await prisma.profile.create({
+          data: {
+            userId: user.id,
+            displayName,
+            username,
+            status: user.status,
+          },
+        });
+        return newProfile;
+      } else {
+        // Repair existing profile with missing fields
+        const updatedProfile = await prisma.profile.update({
+          where: { userId: user.id },
+          data: {
+            displayName: user.profile.displayName || displayName,
+            username: user.profile.username || username,
+          },
+        });
+        return updatedProfile;
+      }
     }
 
     return user.profile;
