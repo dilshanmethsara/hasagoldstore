@@ -1,7 +1,7 @@
 {
   "version": 2,
-  "buildCommand": "npm run prisma:generate && npm run build",
-  "outputDirectory": "dist",
+  "buildCommand": "npm run prisma:generate",
+  "outputDirectory": ".",
   "installCommand": "npm install --include=dev",
   "functions": {
     "api/index.ts": {
