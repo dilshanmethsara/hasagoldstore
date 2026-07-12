@@ -1,18 +1,16 @@
 /**
  * Vercel serverless entry point.
- * @vercel/node bundles this file + all its imports automatically using esbuild.
- * No separate tsc compilation step is needed.
+ * Calls the Express app directly — no serverless-http wrapper needed
+ * because Vercel's Node.js runtime uses native http.IncomingMessage/ServerResponse.
  */
-import serverless from 'serverless-http';
-import type { Express } from 'express';
 import { createApp } from '../src/index';
+import type { Express } from 'express';
 
-let cachedHandler: ReturnType<typeof serverless> | null = null;
+let cachedApp: Express | null = null;
 
 export default async function handler(req: any, res: any) {
-  if (!cachedHandler) {
-    const app: Express = await createApp();
-    cachedHandler = serverless(app);
+  if (!cachedApp) {
+    cachedApp = await createApp();
   }
-  return cachedHandler(req, res);
+  cachedApp(req, res);
 }
