@@ -28,8 +28,13 @@ export async function createApp(): Promise<Express> {
 
   // Middleware
   app.use(helmet());
+  
+  const corsOrigin = process.env.CORS_ORIGIN 
+    ? process.env.CORS_ORIGIN.replace(/\/$/, '') 
+    : 'http://localhost:3000';
+
   app.use(cors({
-    origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
+    origin: corsOrigin,
     credentials: true,
   }));
   app.use(cookieParser());
