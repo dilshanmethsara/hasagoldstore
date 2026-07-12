@@ -1,15 +1,18 @@
 /**
  * Vercel serverless entry point for the Express backend.
- *
- * Exports the Express app directly for Vercel's serverless functions.
- * Vercel will call this as a serverless function handler.
+ * 
+ * Vercel's @vercel/node runtime handles TypeScript natively.
+ * This file re-exports the Express app as a serverless function.
  */
 
+import type { Express } from 'express';
 import { createApp } from '../src/index';
 
-const appPromise = createApp();
+let app: Express | undefined;
 
 export default async function handler(req: any, res: any) {
-  const app = await appPromise;
-  return app(req, res);
+  if (!app) {
+    app = await createApp();
+  }
+  app(req, res);
 }
