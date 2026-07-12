@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { authRateLimit } from '../middleware/rateLimit';
 import { authService } from '../services/authService';
+import { userService } from '../services/userService';
 import { ApiError } from '../types';
 import { generateToken, verifyToken } from '../lib/jwt';
 import { requireAuth } from '../middleware/auth';
@@ -23,15 +24,16 @@ router.get('/session', async (req, res) => {
       return res.json({});
     }
 
-    // Fetch full user data including profile
+    // Fetch full user data
     const user = await prisma.user.findUnique({
       where: { id: payload.id },
-      include: { profile: true },
     });
 
     if (!user) {
       return res.json({});
     }
+
+    const profile = await userService.getProfile(user.id);
 
     res.json({ 
       user: {
@@ -42,7 +44,7 @@ router.get('/session', async (req, res) => {
         phoneVerified: user.phoneVerified,
         roles: user.roles,
         status: user.status,
-        profile: user.profile,
+        profile,
       }
     });
   } catch (error) {

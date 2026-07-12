@@ -13,6 +13,30 @@ export class UserService {
       throw new ApiError('USER_NOT_FOUND', 'User not found');
     }
 
+    if (!user.profile) {
+      // Auto-create a profile if it is missing
+      let username = user.email.split('@')[0];
+      
+      // Ensure username uniqueness in the database
+      const existing = await prisma.profile.findUnique({
+        where: { username },
+      });
+      if (existing) {
+        username = `${username}_${Math.floor(1000 + Math.random() * 9000)}`;
+      }
+
+      const displayName = username;
+      const newProfile = await prisma.profile.create({
+        data: {
+          userId: user.id,
+          displayName,
+          username,
+          status: user.status,
+        },
+      });
+      return newProfile;
+    }
+
     return user.profile;
   }
 

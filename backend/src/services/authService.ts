@@ -74,7 +74,6 @@ export class AuthService {
   async login(input: LoginInput) {
     const user = await prisma.user.findUnique({
       where: { email: input.email },
-      include: { profile: true },
     });
 
     if (!user) {
@@ -89,6 +88,9 @@ export class AuthService {
     // For now, we'll skip password verification since the schema doesn't have it yet
     // In production, you would: const valid = await bcrypt.compare(input.password, user.password);
 
+    const { userService } = require('./userService');
+    const profile = await userService.getProfile(user.id);
+
     return {
       id: user.id,
       email: user.email,
@@ -97,19 +99,21 @@ export class AuthService {
       phoneVerified: user.phoneVerified,
       roles: user.roles,
       status: user.status,
-      profile: user.profile,
+      profile,
     };
   }
 
   async getUserById(userId: string) {
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      include: { profile: true },
     });
 
     if (!user) {
       throw new ApiError('USER_NOT_FOUND', 'User not found');
     }
+
+    const { userService } = require('./userService');
+    const profile = await userService.getProfile(user.id);
 
     return {
       id: user.id,
@@ -120,7 +124,7 @@ export class AuthService {
       roles: user.roles,
       status: user.status,
       createdAt: user.createdAt,
-      profile: user.profile,
+      profile,
     };
   }
 
