@@ -6,7 +6,7 @@
 
 import serverless from 'serverless-http';
 import type { Express } from 'express';
-import { createApp } from '../src/index';
+import { createApp } from '../src/index.js';
 
 let cachedHandler: ReturnType<typeof serverless> | null = null;
 
