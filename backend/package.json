@@ -2,8 +2,7 @@
   "name": "hasa-gold-store-backend",
   "version": "1.0.0",
   "description": "Backend API for HASA GOLD STORE",
-  "main": "dist/index.js",
-  "type": "module",
+  "main": "dist/src/index.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "tsc",

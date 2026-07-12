@@ -1,12 +1,12 @@
 /**
  * Vercel serverless entry point for the Express backend.
- * Uses serverless-http to properly wrap Express for serverless environments.
- * This ensures Express middleware completes before returning the response.
+ * Imports the tsc-compiled output from dist/src/index.js
  */
 
 import serverless from 'serverless-http';
 import type { Express } from 'express';
-import { createApp } from '../src/index';
+// Import from the tsc-compiled dist output so Vercel can resolve it at runtime
+import { createApp } from '../dist/src/index';
 
 let cachedHandler: ReturnType<typeof serverless> | null = null;
 
