@@ -1,6 +1,3 @@
-# Ignore backend folder when deploying frontend
-backend/
-
 # Node
 node_modules/
 
