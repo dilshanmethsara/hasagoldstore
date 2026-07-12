@@ -1,12 +1,11 @@
 /**
- * Vercel serverless entry point for the Express backend.
- * Imports the tsc-compiled output from dist/src/index.js
+ * Vercel serverless entry point.
+ * @vercel/node bundles this file + all its imports automatically using esbuild.
+ * No separate tsc compilation step is needed.
  */
-
 import serverless from 'serverless-http';
 import type { Express } from 'express';
-// Import from the tsc-compiled dist output so Vercel can resolve it at runtime
-import { createApp } from '../dist/src/index';
+import { createApp } from '../src/index';
 
 let cachedHandler: ReturnType<typeof serverless> | null = null;
 
