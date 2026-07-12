@@ -115,9 +115,11 @@ async function request<T>(
   const isMutation = method !== "GET";
   const maxAttempts = Math.max(1, (isMutation ? 0 : options.retries ?? 0) + 1);
 
+  const token = typeof window !== "undefined" ? localStorage.getItem("auth_token") : null;
   const headers: Record<string, string> = {
     Accept: "application/json",
     ...(body !== undefined ? { "Content-Type": "application/json" } : {}),
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...(options.headers ?? {}),
   };
 

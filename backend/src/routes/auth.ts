@@ -80,7 +80,7 @@ router.post('/callback/credentials', authRateLimit, async (req, res) => {
     });
 
     console.log('[Login] Success for:', email);
-    res.json({ user });
+    res.json({ user, token });
   } catch (error) {
     console.error('[Login] Error:', error);
     if (error instanceof ApiError) {
@@ -112,7 +112,7 @@ router.post('/register', authRateLimit, async (req, res) => {
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
 
-    res.json({ user });
+    res.json({ user, token });
   } catch (error) {
     if (error instanceof ApiError) {
       res.status(400).json({ code: error.code, message: error.message });

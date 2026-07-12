@@ -37,15 +37,37 @@ export const authService = {
 
   me: () => http.get<User>("/users/me"),
 
-  login: (input: LoginInput) =>
-    http.post<AuthSession>("/auth/callback/credentials", input),
+  login: async (input: LoginInput) => {
+    const res = await http.post<{ user: User; token?: string }>("/auth/callback/credentials", input);
+    if (res.token) {
+      localStorage.setItem("auth_token", res.token);
+    }
+    return {
+      user: res.user,
+      profile: res.user.profile ?? null,
+      expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+    } as AuthSession;
+  },
 
-  register: (input: RegisterInput) =>
-    http.post<AuthSession>("/auth/register", input),
+  register: async (input: RegisterInput) => {
+    const res = await http.post<{ user: User; token?: string }>("/auth/register", input);
+    if (res.token) {
+      localStorage.setItem("auth_token", res.token);
+    }
+    return {
+      user: res.user,
+      profile: res.user.profile ?? null,
+      expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+    } as AuthSession;
+  },
 
   logout: async () => {
-    await http.post<void>("/auth/signout");
-    resetCsrfToken();
+    try {
+      await http.post<void>("/auth/signout");
+    } finally {
+      localStorage.removeItem("auth_token");
+      resetCsrfToken();
+    }
   },
 
   loginWithGoogle: (redirect: string = "/dashboard") => {
