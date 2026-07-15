@@ -7,7 +7,7 @@ import { useAuthContext } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/auth/login")({
-  validateSearch: (s: Record<string, unknown>) => ({
+  validateSearch: (s: Record<string, unknown>): { redirect?: string } => ({
     redirect: s.redirect ? String(s.redirect) : undefined,
   }),
   head: () => ({ meta: [{ title: "Log in — HASA GOLD STORE" }] }),
