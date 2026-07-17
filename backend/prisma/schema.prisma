@@ -1,0 +1,428 @@
+// Prisma schema for HASA GOLD STORE
+// Database: PostgreSQL (Neon)
+// ORM: Prisma
+
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
+  engineType    = "library"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ── Authentication & User Management ───────────────────────────────────────
+
+enum Role {
+  USER
+  ADMIN
+  MODERATOR
+}
+
+enum AccountStatus {
+  active
+  pending
+  suspended
+  banned
+}
+
+// Auth.js models
+model Account {
+  id                String  @id @default(cuid())
+  userId            String  @map("user_id")
+  type              String
+  provider          String
+  providerAccountId String  @map("provider_account_id")
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique @map("session_token")
+  userId       String   @map("user_id")
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+model EmailVerificationToken {
+  id        String   @id @default(uuid())
+  email     String
+  token     String   @unique
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([email])
+  @@map("email_verification_tokens")
+}
+
+model User {
+  id            String   @id @default(uuid()) @map("id")
+  email         String   @unique @map("email")
+  password      String?  @map("password")
+  emailVerified Boolean  @default(false) @map("email_verified")
+  phone         String?  @map("phone")
+  phoneVerified Boolean  @default(false) @map("phone_verified")
+  roles         Role[]   @default([USER]) @map("roles")
+  status        AccountStatus @default(active) @map("status")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  accounts      Account[]
+  sessions      Session[]
+  profile       Profile?
+  orders        Order[]
+  walletTransactions WalletTransaction[]
+  notifications  AppNotification[]
+  favorites     Favorite[]
+  reviews       Review[]
+  supportTickets SupportTicket[]
+  ticketMessages TicketMessage[]
+
+  @@map("users")
+}
+
+model Profile {
+  id              String        @id @default(uuid()) @map("id")
+  userId          String        @unique @map("user_id")
+  displayName     String?       @map("display_name")
+  username        String?       @unique @map("username")
+  avatarUrl       String?       @map("avatar_url")
+  phone           String?       @map("phone")
+  country         String?       @map("country")
+  status          AccountStatus @default(active) @map("status")
+  statusReason    String?       @map("status_reason")
+  statusUpdatedAt DateTime?     @map("status_updated_at")
+  createdAt       DateTime      @default(now()) @map("created_at")
+
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("profiles")
+}
+
+// ── Games & Packages ───────────────────────────────────────────────────────
+
+model Game {
+  id          String   @id @default(uuid()) @map("id")
+  slug        String   @unique @map("slug")
+  name        String   @map("name")
+  tagline     String?  @map("tagline")
+  publisher   String?  @map("publisher")
+  imageUrl    String?  @map("image_url")
+  cardImage   String?  @map("card_image")
+  heroImage   String?  @map("hero_image")
+  popularity  Int      @default(0) @map("popularity")
+  isFeatured  Boolean  @default(false) @map("is_featured")
+  sortOrder   Int      @default(0) @map("sort_order")
+  isLive      Boolean  @default(true) @map("is_live")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  packages    Package[]
+  orders      Order[]
+  favorites   Favorite[]
+  reviews     Review[]
+
+  @@map("games")
+}
+
+model Package {
+  id          String   @id @default(uuid()) @map("id")
+  gameId      String   @map("game_id")
+  label       String   @map("label")
+  amount      Int      @map("amount")
+  bonus       Int      @default(0) @map("bonus")
+  priceLkr    Decimal  @map("price_lkr")
+  currency    String   @default("LKR") @map("currency")
+  badge       String?  @map("badge")
+  isActive    Boolean  @default(true) @map("is_active")
+  sortOrder   Int      @default(0) @map("sort_order")
+
+  game        Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  orders      Order[]
+
+  @@map("packages")
+}
+
+// ── Orders & Payments ─────────────────────────────────────────────────────
+
+enum OrderStatus {
+  pending
+  paid
+  processing
+  delivered
+  completed
+  paused
+  cancelled
+  failed
+  refunded
+}
+
+enum PaymentMethod {
+  card
+  wallet
+  ez_cash
+  frimi
+  bank_transfer
+}
+
+model Order {
+  id            String        @id @default(uuid()) @map("id")
+  orderNumber   String        @unique @map("order_number")
+  userId        String?       @map("user_id")
+  gameId        String        @map("game_id")
+  packageId     String        @map("package_id")
+  playerId      String        @map("player_id")
+  quantity      Int           @default(1) @map("quantity")
+  subtotalLkr   Decimal       @map("subtotal_lkr")
+  discountLkr   Decimal       @default(0) @map("discount_lkr")
+  totalLkr      Decimal       @map("total_lkr")
+  currency      String        @default("LKR") @map("currency")
+  paymentMethod PaymentMethod @map("payment_method")
+  status        OrderStatus   @default(pending) @map("status")
+  promoCode     String?       @map("promo_code")
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+
+  user          User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  game          Game          @relation(fields: [gameId], references: [id])
+  package       Package       @relation(fields: [packageId], references: [id])
+  timeline      OrderTimeline[]
+  reviews       Review[]
+  supportTickets SupportTicket[]
+  walletTransactions WalletTransaction[]
+
+  @@map("orders")
+}
+
+model OrderTimeline {
+  id        String      @id @default(uuid()) @map("id")
+  orderId   String      @map("order_id")
+  label     String      @map("label")
+  status    OrderStatus @map("status")
+  at        DateTime    @default(now()) @map("at")
+
+  order     Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("order_timeline")
+}
+
+// ── Wallet ────────────────────────────────────────────────────────────────
+
+enum WalletTxnType {
+  credit
+  debit
+  bonus
+  refund
+}
+
+model WalletTransaction {
+  id           String       @id @default(uuid()) @map("id")
+  userId       String       @map("user_id")
+  type         WalletTxnType @map("type")
+  amountLkr    Decimal      @map("amount_lkr")
+  balanceAfter Decimal      @map("balance_after")
+  description  String?      @map("description")
+  orderId      String?      @map("order_id")
+  createdAt    DateTime     @default(now()) @map("created_at")
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  order        Order?       @relation(fields: [orderId], references: [id], onDelete: SetNull)
+
+  @@map("wallet_transactions")
+}
+
+// ── Notifications ──────────────────────────────────────────────────────────
+
+enum NotificationType {
+  order
+  wallet
+  promo
+  ticket
+  system
+}
+
+model AppNotification {
+  id        String           @id @default(uuid()) @map("id")
+  userId    String           @map("user_id")
+  type      NotificationType  @map("type")
+  title     String           @map("title")
+  body      String?          @map("body")
+  link      String?          @map("link")
+  isRead    Boolean          @default(false) @map("is_read")
+  createdAt DateTime         @default(now()) @map("created_at")
+
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+// ── Promo Codes ────────────────────────────────────────────────────────────
+
+enum PromoKind {
+  percent
+  fixed
+}
+
+model PromoCode {
+  id               String    @id @default(uuid()) @map("id")
+  code             String    @unique @map("code")
+  description      String?   @map("description")
+  kind             PromoKind @map("kind")
+  value            Decimal   @map("value")
+  minSpendLkr      Decimal   @default(0) @map("min_spend_lkr")
+  isActive         Boolean   @default(true) @map("is_active")
+  expiresAt        DateTime? @map("expires_at")
+  redemptionsCount Int       @default(0) @map("redemptions_count")
+  createdAt        DateTime  @default(now()) @map("created_at")
+
+  @@map("promo_codes")
+}
+
+// ── Reviews ────────────────────────────────────────────────────────────────
+
+model Review {
+  id         String   @id @default(uuid()) @map("id")
+  userId     String   @map("user_id")
+  gameId     String?  @map("game_id")
+  orderId    String?  @map("order_id")
+  rating     Int      @map("rating")
+  title      String?  @map("title")
+  body       String   @map("body")
+  isApproved Boolean  @default(false) @map("is_approved")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  game       Game?    @relation(fields: [gameId], references: [id], onDelete: SetNull)
+  order      Order?   @relation(fields: [orderId], references: [id], onDelete: SetNull)
+
+  @@map("reviews")
+}
+
+// ── Support Tickets ────────────────────────────────────────────────────────
+
+enum TicketStatus {
+  open
+  pending
+  resolved
+  closed
+}
+
+model SupportTicket {
+  id        String       @id @default(uuid()) @map("id")
+  userId    String       @map("user_id")
+  orderId   String?      @map("order_id")
+  subject   String       @map("subject")
+  category  String       @map("category")
+  status    TicketStatus @default(open) @map("status")
+  createdAt DateTime     @default(now()) @map("created_at")
+  updatedAt DateTime     @updatedAt @map("updated_at")
+
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  order     Order?       @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  messages  TicketMessage[]
+
+  @@map("support_tickets")
+}
+
+model TicketMessage {
+  id        String   @id @default(uuid()) @map("id")
+  ticketId  String   @map("ticket_id")
+  senderId  String   @map("sender_id")
+  body      String   @map("body")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  ticket    SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  sender    User          @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@map("ticket_messages")
+}
+
+// ── Favorites ─────────────────────────────────────────────────────────────
+
+model Favorite {
+  userId    String   @map("user_id")
+  gameId    String   @map("game_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  game      Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+
+  @@id([userId, gameId])
+  @@map("favorites")
+}
+
+// ── FAQ ───────────────────────────────────────────────────────────────────
+
+model Faq {
+  id        String   @id @default(uuid()) @map("id")
+  question  String   @map("question")
+  answer    String   @map("answer")
+  category  String?  @map("category")
+  isActive  Boolean  @default(true) @map("is_active")
+  sortOrder Int      @default(0) @map("sort_order")
+
+  @@map("faqs")
+}
+
+// ── Blog ─────────────────────────────────────────────────────────────────
+
+model BlogPost {
+  id          String    @id @default(uuid()) @map("id")
+  slug        String    @unique @map("slug")
+  title       String    @map("title")
+  excerpt     String?   @map("excerpt")
+  body        String    @map("body")
+  coverUrl    String?   @map("cover_url")
+  isPublished Boolean   @default(false) @map("is_published")
+  publishedAt DateTime?  @map("published_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@map("blog_posts")
+}
+
+// ── Announcements ──────────────────────────────────────────────────────────
+
+model Announcement {
+  id        String   @id @default(uuid()) @map("id")
+  title     String   @map("title")
+  body      String?  @map("body")
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("announcements")
+}
+
+// ── System Settings ────────────────────────────────────────────────────────
+
+model SystemSettings {
+  id               String   @id @default(uuid()) @map("id")
+  maintenanceEnabled Boolean @default(false) @map("maintenance_enabled")
+  maintenanceMessage  String  @default("") @map("maintenance_message")
+  securityLockEnabled  Boolean @default(false) @map("security_lock_enabled")
+  securityLockMessage  String  @default("") @map("security_lock_message")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  @@map("system_settings")
+}
