@@ -21,14 +21,20 @@ export class ApiError extends Error {
   status: number;
   code: string;
   details?: unknown;
+<<<<<<< HEAD
   email?: string;
+=======
+>>>>>>> 5dc4835f7bc1fa70baab67fe63ecf3e3cd130622
   constructor(status: number, payload: ApiErrorPayload) {
     super(payload.message);
     this.name = "ApiError";
     this.status = status;
     this.code = payload.code;
     this.details = payload.details;
+<<<<<<< HEAD
     this.email = (payload as any).email;
+=======
+>>>>>>> 5dc4835f7bc1fa70baab67fe63ecf3e3cd130622
   }
 }
 
