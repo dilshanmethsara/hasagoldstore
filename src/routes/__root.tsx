@@ -14,6 +14,7 @@ import { reportError } from "../lib/lovable-error-reporting";
 import { Toaster } from "@/components/ui/sonner";
 import { MaintenanceGate } from "@/components/system/MaintenanceGate";
 import { AccountStatusGate } from "@/components/system/AccountStatusGate";
+import { EmailVerificationGate } from "@/components/system/EmailVerificationGate";
 import { THEME_INIT_SCRIPT } from "@/lib/use-theme";
 import { AuthProvider } from "@/contexts/AuthContext";
 
@@ -141,7 +142,9 @@ function RootComponent() {
         {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
         <MaintenanceGate>
           <AccountStatusGate>
-            <Outlet />
+            <EmailVerificationGate>
+              <Outlet />
+            </EmailVerificationGate>
           </AccountStatusGate>
         </MaintenanceGate>
         <Toaster />

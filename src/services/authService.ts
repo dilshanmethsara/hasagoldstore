@@ -50,7 +50,8 @@ export const authService = {
   },
 
   register: async (input: RegisterInput) => {
-    const res = await http.post<{ user: User; token?: string }>("/auth/register", input);
+    const res = await http.post<{ user: User; token?: string; requiresVerification?: boolean }>("/auth/register", input);
+    // Don't set token if registration requires verification (user not verified yet)
     if (res.token) {
       localStorage.setItem("auth_token", res.token);
     }
@@ -58,7 +59,8 @@ export const authService = {
       user: res.user,
       profile: res.user.profile ?? null,
       expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-    } as AuthSession;
+      requiresVerification: res.requiresVerification,
+    } as AuthSession & { requiresVerification?: boolean };
   },
 
   logout: async () => {

@@ -2,7 +2,8 @@ import { Resend } from 'resend';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-const FROM_EMAIL = process.env.EMAIL_FROM || 'no-reply@hasagold.store';
+// Use configured sender email (works for both dev and prod with verified domain)
+const FROM_EMAIL = process.env.EMAIL_FROM || 'onboarding@resend.dev';
 
 export interface EmailTemplate {
   subject: string;
@@ -225,7 +226,17 @@ export async function sendEmail(to: string, template: EmailTemplate): Promise<{ 
 
 export async function sendOTPEmail(email: string, code: string): Promise<{ success: boolean; error?: string }> {
   const template = generateOTPEmail(code, email);
-  return sendEmail(email, template);
+  const result = await sendEmail(email, template);
+  
+  // Dev fallback: log OTP to console if email fails
+  if (!result.success && process.env.NODE_ENV === 'development') {
+    console.log('\n═══════════════════════════════════════');
+    console.log(`📧 DEV MODE - OTP for ${email}: ${code}`);
+    console.log('═══════════════════════════════════════\n');
+    return { success: true };
+  }
+  
+  return result;
 }
 
 export async function sendWelcomeEmail(email: string, displayName: string): Promise<{ success: boolean; error?: string }> {

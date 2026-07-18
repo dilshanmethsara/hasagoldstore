@@ -77,8 +77,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const register = useCallback(
     async (input: RegisterInput) => {
       const next = await authService.register(input);
-      applySession(next);
-      queryClient.invalidateQueries();
+      // Don't apply session if user needs verification (no token issued)
+      if (!next.requiresVerification) {
+        applySession(next);
+        queryClient.invalidateQueries();
+      }
       return next;
     },
     [applySession, queryClient],
