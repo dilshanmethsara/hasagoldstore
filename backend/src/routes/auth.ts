@@ -1,0 +1,238 @@
+import { Router } from 'express';
+import { authRateLimit, phoneOtpRateLimit } from '../middleware/rateLimit';
+import { authService } from '../services/authService';
+import { userService } from '../services/userService';
+import { ApiError } from '../types';
+import { generateToken, verifyToken } from '../lib/jwt';
+import { requireAuth } from '../middleware/auth';
+import { AuthRequest } from '../middleware/auth';
+import { prisma } from '../lib/prisma';
+
+const router = Router();
+
+// Session endpoint
+router.get('/session', async (req, res) => {
+  try {
+    const token = req.cookies?.token || req.headers.authorization?.replace('Bearer ', '');
+    if (!token) {
+      return res.json({});
+    }
+
+    const payload = verifyToken(token);
+
+    if (!payload) {
+      return res.json({});
+    }
+
+    // Fetch full user data
+    const user = await prisma.user.findUnique({
+      where: { id: payload.id },
+    });
+
+    if (!user) {
+      return res.json({});
+    }
+
+    const profile = await userService.getProfile(user.id);
+
+    res.json({ 
+      user: {
+        id: user.id,
+        email: user.email,
+        email_verified: user.emailVerified,
+        phone: user.phone,
+        phone_verified: user.phoneVerified,
+        roles: user.roles,
+        status: user.status,
+        profile,
+      }
+    });
+  } catch (error) {
+    return res.json({});
+  }
+});
+
+// CSRF token endpoint (not needed for JWT, return empty for compatibility)
+router.get('/csrf', (_req, res) => {
+  res.json({ csrfToken: '' });
+});
+
+// Credentials login
+router.post('/callback/credentials', authRateLimit, async (req, res) => {
+  try {
+    console.log('[Login] Request body:', req.body);
+    const { email, password } = req.body;
+    const user = await authService.login({ email, password });
+    
+    // Generate JWT token
+    const token = generateToken({
+      id: user.id,
+      email: user.email,
+      roles: user.roles,
+      status: user.status,
+    });
+
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    });
+
+    console.log('[Login] Success for:', email);
+    res.json({ user, token });
+  } catch (error) {
+    console.error('[Login] Error:', error);
+    if (error instanceof ApiError) {
+      // If email not verified, include email in response for redirect
+      if (error.code === 'EMAIL_NOT_VERIFIED' && error.email) {
+        res.status(400).json({ code: error.code, message: error.message, email: error.email });
+      } else {
+        res.status(400).json({ code: error.code, message: error.message });
+      }
+    } else {
+      res.status(500).json({ code: 'INTERNAL_ERROR', message: 'Login failed' });
+    }
+  }
+});
+
+// Register
+router.post('/register', authRateLimit, async (req, res) => {
+  try {
+    const { email, password, phone, displayName, username } = req.body;
+    const user = await authService.register({ email, password, phone, displayName, username });
+    
+    // DON'T generate JWT token for unverified users
+    // User must verify email first before getting access token
+    
+    res.json({ user, requiresVerification: true });
+  } catch (error) {
+    if (error instanceof ApiError) {
+      res.status(400).json({ code: error.code, message: error.message });
+    } else {
+      res.status(500).json({ code: 'INTERNAL_ERROR', message: 'Registration failed' });
+    }
+  }
+});
+
+// Sign out
+router.post('/signout', (_req, res) => {
+  res.clearCookie('token');
+  res.json({ ok: true });
+});
+
+// Forgot password
+router.post('/forgot-password', authRateLimit, async (req, res) => {
+  try {
+    const { email } = req.body;
+    await authService.initiatePasswordReset(email);
+    res.json({ ok: true });
+  } catch (error) {
+    if (error instanceof ApiError) {
+      res.status(400).json({ code: error.code, message: error.message });
+    } else {
+      res.status(500).json({ code: 'INTERNAL_ERROR', message: 'Password reset failed' });
+    }
+  }
+});
+
+// Reset password
+router.post('/reset-password', authRateLimit, async (req, res) => {
+  try {
+    const { token, password } = req.body;
+    await authService.resetPassword(token, password);
+    res.json({ ok: true });
+  } catch (error) {
+    if (error instanceof ApiError) {
+      res.status(400).json({ code: error.code, message: error.message });
+    } else {
+      res.status(500).json({ code: 'INTERNAL_ERROR', message: 'Password reset failed' });
+    }
+  }
+});
+
+// Change password (authenticated)
+router.post('/change-password', requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const userId = req.user!.id;
+    const { currentPassword, newPassword } = req.body;
+    await authService.updatePassword(userId, currentPassword, newPassword);
+    res.json({ ok: true });
+  } catch (error) {
+    if (error instanceof ApiError) {
+      res.status(400).json({ code: error.code, message: error.message });
+    } else {
+      res.status(500).json({ code: 'INTERNAL_ERROR', message: 'Password change failed' });
+    }
+  }
+});
+
+// Verify email
+router.post('/verify-email', async (req, res) => {
+  try {
+    const { token } = req.body;
+    await authService.verifyEmail(token);
+    res.json({ ok: true });
+  } catch (error) {
+    if (error instanceof ApiError) {
+      res.status(400).json({ code: error.code, message: error.message });
+    } else {
+      res.status(500).json({ code: 'INTERNAL_ERROR', message: 'Email verification failed' });
+    }
+  }
+});
+
+// Resend verification email
+router.post('/resend-verification', authRateLimit, async (req, res) => {
+  try {
+    const { email } = req.body;
+    await authService.resendVerificationEmail(email);
+    res.json({ ok: true });
+  } catch (error) {
+    if (error instanceof ApiError) {
+      res.status(400).json({ code: error.code, message: error.message });
+    } else {
+      res.status(500).json({ code: 'INTERNAL_ERROR', message: 'Failed to resend verification email' });
+    }
+  }
+});
+
+// Start phone verification
+router.post('/verify-phone/start', phoneOtpRateLimit, requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const userId = req.user!.id;
+    const { phone, method } = req.body;
+    await authService.initiatePhoneVerification(userId, phone, method);
+    res.json({ ok: true });
+  } catch (error) {
+    if (error instanceof ApiError) {
+      res.status(400).json({ code: error.code, message: error.message });
+    } else {
+      res.status(500).json({ code: 'INTERNAL_ERROR', message: 'Phone verification failed' });
+    }
+  }
+});
+
+// Confirm phone verification
+router.post('/verify-phone/confirm', authRateLimit, requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const userId = req.user!.id;
+    const { code } = req.body;
+    await authService.confirmPhoneVerification(userId, code);
+    res.json({ ok: true });
+  } catch (error) {
+    if (error instanceof ApiError) {
+      res.status(400).json({ code: error.code, message: error.message });
+    } else {
+      res.status(500).json({ code: 'INTERNAL_ERROR', message: 'Phone verification failed' });
+    }
+  }
+});
+
+// Google OAuth (placeholder)
+router.get('/signin/google', (_req, res) => {
+  // TODO: Implement Google OAuth with Auth.js
+  res.redirect('/');
+});
+
+export { router as authRoutes };
