@@ -15,10 +15,10 @@ function AdminOverview() {
 
   const kpis = [
     { label: "Total Revenue", value: stats ? lkr(stats.revenue) : "—", icon: TrendingUp, tint: "from-primary/30 to-primary/5", accent: "text-primary" },
-    { label: "Today", value: stats ? lkr(stats.todayRev) : "—", icon: TrendingUp, tint: "from-emerald-500/30 to-emerald-500/5", accent: "text-emerald-400" },
-    { label: "Orders", value: stats?.orderCount?.toLocaleString() ?? "—", icon: ShoppingBag, tint: "from-sky-500/30 to-sky-500/5", accent: "text-sky-400" },
-    { label: "Users", value: stats?.userCount?.toLocaleString() ?? "—", icon: Users, tint: "from-fuchsia-500/30 to-fuchsia-500/5", accent: "text-fuchsia-400" },
-    { label: "Open Tickets", value: stats?.openTickets?.toLocaleString() ?? "—", icon: LifeBuoy, tint: "from-amber-500/30 to-amber-500/5", accent: "text-amber-400" },
+    { label: "Today", value: stats ? lkr(stats.today_rev) : "—", icon: TrendingUp, tint: "from-emerald-500/30 to-emerald-500/5", accent: "text-emerald-400" },
+    { label: "Orders", value: stats?.order_count?.toLocaleString() ?? "—", icon: ShoppingBag, tint: "from-sky-500/30 to-sky-500/5", accent: "text-sky-400" },
+    { label: "Users", value: stats?.user_count?.toLocaleString() ?? "—", icon: Users, tint: "from-fuchsia-500/30 to-fuchsia-500/5", accent: "text-fuchsia-400" },
+    { label: "Open Tickets", value: stats?.open_tickets?.toLocaleString() ?? "—", icon: LifeBuoy, tint: "from-amber-500/30 to-amber-500/5", accent: "text-amber-400" },
   ];
 
   const chart = stats?.chart ?? [];

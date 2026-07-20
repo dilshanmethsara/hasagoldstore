@@ -277,11 +277,11 @@ export interface AdminUser {
 
 export interface AdminStats {
   revenue: number;
-  todayRev: number;
-  orderCount: number;
-  userCount: number;
-  openTickets: number;
-  chart: { date: string; value: number }[];
+  today_rev: number;
+  order_count: number;
+  user_count: number;
+  open_tickets: number;
+  chart?: { date: string; value: number }[];
 }
 
 export interface SystemSettings {
