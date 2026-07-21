@@ -4,29 +4,9 @@ import { settingsService } from '../services/settingsService';
 import { ApiError } from '../types';
 import { AccountStatus, Role } from '@prisma/client';
 import { requireAuth, requireRole } from '../middleware/auth';
-import multer from 'multer';
-import path from 'path';
-import fs from 'fs';
+import { upload } from '../lib/cloudinary';
 
 const router = Router();
-
-// Configure multer for file uploads
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const uploadDir = path.join(__dirname, '../../../public/uploads');
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-    cb(null, uploadDir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    const ext = path.extname(file.originalname);
-    cb(null, uniqueSuffix + ext);
-  }
-});
-
-const upload = multer({ storage });
 
 // Upload game images (admin only)
 router.post('/games/upload', requireAuth, requireRole(Role.ADMIN), upload.fields([
@@ -37,13 +17,11 @@ router.post('/games/upload', requireAuth, requireRole(Role.ADMIN), upload.fields
     const files = req.files as { [fieldname: string]: Express.Multer.File[] };
     const result: { card_image?: string; hero_image?: string } = {};
 
-    const baseUrl = `${req.protocol}://${req.get('host')}`;
-
     if (files.card_image?.[0]) {
-      result.card_image = `${baseUrl}/uploads/${files.card_image[0].filename}`;
+      result.card_image = (files.card_image[0] as any).path;
     }
     if (files.hero_image?.[0]) {
-      result.hero_image = `${baseUrl}/uploads/${files.hero_image[0].filename}`;
+      result.hero_image = (files.hero_image[0] as any).path;
     }
 
     res.json(result);
