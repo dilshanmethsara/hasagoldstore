@@ -273,7 +273,11 @@ router.get('/payment-methods', requireAuth, requireRole(Role.ADMIN), async (_req
 
 router.post('/payment-methods', requireAuth, requireRole(Role.ADMIN), async (req, res) => {
   try {
-    const method = await paymentMethodService.create(req.body);
+    const body = {} as any;
+    for (const [k, v] of Object.entries(req.body)) {
+      body[k.replace(/_([a-z])/g, (_, c) => c.toUpperCase())] = v;
+    }
+    const method = await paymentMethodService.create(body);
     res.status(201).json(method);
   } catch (error) {
     if (error instanceof ApiError) throw error;
@@ -283,7 +287,12 @@ router.post('/payment-methods', requireAuth, requireRole(Role.ADMIN), async (req
 
 router.patch('/payment-methods/:id', requireAuth, requireRole(Role.ADMIN), async (req, res) => {
   try {
-    const method = await paymentMethodService.update(req.params.id, req.body);
+    // Map snake_case keys from frontend to camelCase for Prisma
+    const body = {} as any;
+    for (const [k, v] of Object.entries(req.body)) {
+      body[k.replace(/_([a-z])/g, (_, c) => c.toUpperCase())] = v;
+    }
+    const method = await paymentMethodService.update(req.params.id, body);
     res.json(method);
   } catch (error) {
     res.status(400).json({ code: 'VALIDATION_ERROR', message: (error as Error).message });
