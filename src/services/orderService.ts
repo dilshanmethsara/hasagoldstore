@@ -2,6 +2,8 @@ import { http } from "@/api/httpClient";
 import type { Order, OrderStatus, PublicOrder } from "@/types";
 import type { CreateOrderInput } from "@/validation";
 
+const BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/$/, "");
+
 export const orderService = {
   listMine: (limit?: number) =>
     http.get<Order[]>(`/orders${limit ? `?limit=${limit}` : ""}`),
@@ -17,7 +19,7 @@ export const orderService = {
   uploadReceipt: async (file: File): Promise<string> => {
     const fd = new FormData();
     fd.append("receipt", file);
-    const res = await fetch("/orders/upload-receipt", {
+    const res = await fetch(`${BASE_URL}/orders/upload-receipt`, {
       method: "POST",
       credentials: "include",
       body: fd,
