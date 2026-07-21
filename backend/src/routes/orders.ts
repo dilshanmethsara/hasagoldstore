@@ -6,7 +6,8 @@ import { prisma } from '../lib/prisma';
 import { requireAuth } from '../middleware/auth';
 import { AuthRequest } from '../middleware/auth';
 import { upload } from '../lib/cloudinary';
-import { sendOrderConfirmationEmail } from '../lib/email';
+import { sendOrderConfirmationEmail, sendOrderStatusUpdateEmail } from '../lib/email';
+import { whatsappService } from '../utils/whatsapp';
 
 const router = Router();
 
@@ -17,25 +18,39 @@ router.post('/', requireAuth, async (req: AuthRequest, res) => {
     const input: CreateOrderInput = req.body;
     const order = await orderService.create(input, userId);
 
-    // Send order confirmation email
+    // Send order confirmation email + WhatsApp
     try {
-      const userEmail = await prisma.user.findUnique({
+      const userRecord = await prisma.user.findUnique({
         where: { id: userId },
-        select: { email: true },
+        select: { email: true, phone: true, profile: { select: { phone: true } } },
       });
-      if (userEmail?.email) {
-        sendOrderConfirmationEmail(userEmail.email, {
-          orderNumber: order.order_number,
+
+      if (userRecord?.email) {
+        await sendOrderConfirmationEmail(userRecord.email, {
+          orderNumber: order.orderNumber,
           gameName: order.gameName,
-          packageLabel: order.package_label,
-          playerId: order.player_id,
-          totalLkr: String(order.total_lkr),
-          paymentMethod: order.payment_method,
-          receiptUrl: order.receipt_url,
+          packageLabel: order.packageLabel,
+          playerId: order.playerId,
+          totalLkr: String(order.totalLkr),
+          paymentMethod: order.paymentMethod,
+          receiptUrl: order.receiptUrl,
         });
       }
-    } catch (emailErr) {
-      console.error('[Order] Failed to send confirmation email:', emailErr);
+
+      const phone = userRecord?.phone || userRecord?.profile?.phone;
+      if (phone) {
+        await whatsappService.sendOrderPlaced({
+          phone,
+          orderNumber: order.orderNumber,
+          gameName: order.gameName,
+          packageLabel: order.packageLabel,
+          playerId: order.playerId,
+          totalLkr: String(order.totalLkr),
+          paymentMethod: order.paymentMethod,
+        });
+      }
+    } catch (notifyErr) {
+      console.error('[Order] Failed to send order placed notifications:', notifyErr);
     }
 
     res.json(order);
@@ -100,6 +115,43 @@ router.patch('/:id/status', async (req, res) => {
     const { id } = req.params;
     const { status } = req.body;
     const order = await orderService.updateStatus(id, status as OrderStatus);
+
+    // Send status update email + WhatsApp
+    try {
+      if (order.userId) {
+        const userRecord = await prisma.user.findUnique({
+          where: { id: order.userId },
+          select: { email: true, phone: true, profile: { select: { phone: true } } },
+        });
+
+        if (userRecord?.email) {
+          await sendOrderStatusUpdateEmail(userRecord.email, {
+            orderNumber: order.orderNumber,
+            gameName: order.gameName,
+            packageLabel: order.packageLabel,
+            playerId: order.playerId,
+            totalLkr: String(order.totalLkr),
+            status: order.status,
+          });
+        }
+
+        const phone = userRecord?.phone || userRecord?.profile?.phone;
+        if (phone) {
+          await whatsappService.sendOrderStatusUpdate({
+            phone,
+            orderNumber: order.orderNumber,
+            gameName: order.gameName,
+            packageLabel: order.packageLabel,
+            playerId: order.playerId,
+            totalLkr: String(order.totalLkr),
+            status: order.status,
+          });
+        }
+      }
+    } catch (notifyErr) {
+      console.error('[Order] Failed to send status update notifications:', notifyErr);
+    }
+
     res.json(order);
   } catch (error) {
     if (error instanceof ApiError) {

@@ -201,6 +201,10 @@ export class OrderService {
     const updated = await prisma.order.update({
       where: { id },
       data: { status },
+      include: {
+        game: true,
+        package: true,
+      },
     });
 
     // Add timeline entry
@@ -212,7 +216,7 @@ export class OrderService {
       },
     });
 
-    return updated;
+    return this.flattenOrder(updated);
   }
 }
 

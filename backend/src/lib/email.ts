@@ -340,3 +340,111 @@ export async function sendOrderConfirmationEmail(
   const template = generateOrderConfirmationEmail(params);
   return sendEmail(to, template);
 }
+
+// Status metadata for the update email
+const STATUS_META: Record<string, { label: string; color: string; icon: string; message: string }> = {
+  pending:    { label: 'Pending',    color: '#f59e0b', icon: '⏳', message: 'Your order has been received and is awaiting processing.' },
+  processing: { label: 'Processing', color: '#3b82f6', icon: '⚙️', message: 'Great news! We are actively processing your order.' },
+  completed:  { label: 'Completed',  color: '#10b981', icon: '✅', message: 'Your order has been completed successfully. Enjoy your top-up!' },
+  cancelled:  { label: 'Cancelled',  color: '#ef4444', icon: '❌', message: 'Your order has been cancelled. If you have any questions, please contact support.' },
+  refunded:   { label: 'Refunded',   color: '#8b5cf6', icon: '↩️', message: 'A refund has been issued for your order. It may take a few business days to reflect.' },
+};
+
+export function generateOrderStatusUpdateEmail(params: {
+  orderNumber: string;
+  gameName: string;
+  packageLabel: string;
+  playerId: string;
+  totalLkr: string;
+  status: string;
+}): EmailTemplate {
+  const { orderNumber, gameName, packageLabel, playerId, totalLkr, status } = params;
+  const meta = STATUS_META[status] ?? { label: status, color: '#94a3b8', icon: '📋', message: 'Your order status has been updated.' };
+  const subject = `Order ${meta.label} — #${orderNumber} ${meta.icon}`;
+
+  const html = `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Order Status Update</title></head>
+<body style="margin:0;padding:0;background-color:#0a0a0f;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background-color:#0a0a0f;">
+<tr><td align="center" style="padding:40px 16px;">
+<table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
+
+<tr><td align="center" style="padding-bottom:32px;">
+<h1 style="margin:0;font-size:28px;font-weight:800;color:#fff;letter-spacing:-0.5px;">
+<span style="background:linear-gradient(135deg,#f59e0b,#d97706);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">HASA</span>
+<span style="color:#fff;"> GOLD STORE</span>
+</h1>
+</td></tr>
+
+<tr><td align="center" style="background:linear-gradient(135deg,#1a1a2e,#16213e);border-radius:16px;padding:40px 32px;border:1px solid rgba(255,255,255,0.06);">
+<div style="font-size:48px;margin-bottom:16px;">${meta.icon}</div>
+<h2 style="margin:0 0 8px;font-size:24px;font-weight:700;color:#fff;">Order ${meta.label}</h2>
+<p style="margin:0;font-size:14px;color:#94a3b8;">${meta.message}</p>
+</td></tr>
+
+<tr><td style="height:16px;"></td></tr>
+
+<tr><td style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:16px;padding:32px;">
+<h3 style="margin:0 0 20px;font-size:16px;font-weight:600;color:#f59e0b;text-transform:uppercase;letter-spacing:1px;">Order Details</h3>
+<table width="100%" cellpadding="0" cellspacing="0">
+<tr><td style="padding:8px 0;"><span style="color:#94a3b8;font-size:13px;">Order #</span></td><td style="text-align:right;"><span style="color:#fff;font-weight:600;font-family:monospace;font-size:13px;">${orderNumber}</span></td></tr>
+<tr><td style="padding:8px 0;border-top:1px solid rgba(255,255,255,0.04);"><span style="color:#94a3b8;font-size:13px;">Game</span></td><td style="text-align:right;border-top:1px solid rgba(255,255,255,0.04);"><span style="color:#fff;font-weight:600;font-size:13px;">${gameName}</span></td></tr>
+<tr><td style="padding:8px 0;border-top:1px solid rgba(255,255,255,0.04);"><span style="color:#94a3b8;font-size:13px;">Package</span></td><td style="text-align:right;border-top:1px solid rgba(255,255,255,0.04);"><span style="color:#fff;font-weight:600;font-size:13px;">${packageLabel}</span></td></tr>
+<tr><td style="padding:8px 0;border-top:1px solid rgba(255,255,255,0.04);"><span style="color:#94a3b8;font-size:13px;">Player ID</span></td><td style="text-align:right;border-top:1px solid rgba(255,255,255,0.04);"><span style="color:#fff;font-weight:600;font-size:13px;">${playerId}</span></td></tr>
+<tr><td style="padding:8px 0;border-top:1px solid rgba(255,255,255,0.04);"><span style="color:#94a3b8;font-size:13px;">Status</span></td><td style="text-align:right;border-top:1px solid rgba(255,255,255,0.04);"><span style="font-weight:700;font-size:13px;color:${meta.color};">${meta.label}</span></td></tr>
+</table>
+<div style="margin-top:20px;padding-top:20px;border-top:2px solid rgba(245,158,11,0.3);text-align:right;">
+<span style="font-size:13px;color:#94a3b8;">Total</span>
+<span style="display:block;font-size:28px;font-weight:800;color:#f59e0b;">LKR ${totalLkr}</span>
+</div>
+</td></tr>
+
+<tr><td style="height:16px;"></td></tr>
+
+<tr><td align="center" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:16px;padding:24px 32px;">
+<a href="https://hasagold.store/dashboard/orders" style="display:inline-block;background:linear-gradient(135deg,#f59e0b,#d97706);color:#0a0a0f;font-weight:700;font-size:14px;padding:12px 28px;border-radius:10px;text-decoration:none;">View Order →</a>
+</td></tr>
+
+<tr><td align="center" style="padding:32px 0 0;">
+<p style="margin:0 0 4px;font-size:12px;color:#64748b;">HASA GOLD STORE — Premium Gaming Top-Ups</p>
+<p style="margin:0;font-size:12px;color:#64748b;">Need help? <a href="mailto:support@hasagold.store" style="color:#f59e0b;text-decoration:none;">support@hasagold.store</a></p>
+</td></tr>
+
+</table>
+</td></tr>
+</table>
+</body>
+</html>`;
+
+  const text = `
+HASA GOLD STORE — Order Status Update
+
+Your order #${orderNumber} is now: ${meta.label}
+
+${meta.message}
+
+Order Details:
+  Order #:  ${orderNumber}
+  Game:     ${gameName}
+  Package:  ${packageLabel}
+  Player ID: ${playerId}
+  Total:    LKR ${totalLkr}
+  Status:   ${meta.label}
+
+View your order: https://hasagold.store/dashboard/orders
+
+Need help? Contact support@hasagold.store
+`.trim();
+
+  return { subject, html, text };
+}
+
+export async function sendOrderStatusUpdateEmail(
+  to: string,
+  params: Parameters<typeof generateOrderStatusUpdateEmail>[0],
+): Promise<{ success: boolean; error?: string }> {
+  const template = generateOrderStatusUpdateEmail(params);
+  return sendEmail(to, template);
+}
