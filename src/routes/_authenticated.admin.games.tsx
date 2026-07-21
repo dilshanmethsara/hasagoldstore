@@ -15,6 +15,8 @@ type GameForm = Partial<Game> & {
   hero_image_file?: File | null;
 };
 
+const API_BASE = (import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3001").replace(/\/$/, "");
+
 function GamesPage() {
   const { data: games, isLoading } = useGames();
   const upsert = useUpsertGame();
@@ -64,7 +66,7 @@ function GamesPage() {
                   <Pencil className="h-3.5 w-3.5" />
                 </button>
                 <button
-                  onClick={() => { if (confirm(`Delete ${g.name}? This will remove its packages and unlink orders.`)) del.mutate(g.id); }}
+                  onClick={() => { if (confirm(`Delete ${g.name}?`)) del.mutate(g.id); }}
                   className="grid h-8 w-8 place-items-center rounded-lg border border-red-500/20 bg-red-500/10 text-red-400 transition hover:bg-red-500/20"
                   title="Delete"
                 >
@@ -87,7 +89,7 @@ function GamesPage() {
               if (v.hero_image_file) formData.append('hero_image', v.hero_image_file);
               try {
                 const token = localStorage.getItem('auth_token');
-                const uploadRes = await fetch('http://localhost:3001/admin/games/upload', {
+                const uploadRes = await fetch(`${API_BASE}/admin/games/upload`, {
                   method: 'POST',
                   credentials: 'include',
                   headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -122,10 +124,7 @@ function GameFormDialog({ initial, onClose, onSave, saving }: { initial: GameFor
           <h2 className="font-display text-xl font-bold text-foreground">{isNew ? "Add game" : `Edit ${initial.name}`}</h2>
           <button onClick={onClose} className="grid h-8 w-8 place-items-center rounded-lg text-muted-foreground hover:bg-white/5"><X className="h-4 w-4" /></button>
         </div>
-        <form
-          className="mt-5 space-y-4"
-          onSubmit={(e) => { e.preventDefault(); onSave(form); }}
-        >
+        <form className="mt-5 space-y-4" onSubmit={(e) => { e.preventDefault(); onSave(form); }}>
           <Field label="Name"><input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className={inp} /></Field>
           <Field label="Slug (URL)"><input required value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-") })} className={inp} placeholder="free-fire" /></Field>
           <Field label="Publisher"><input value={form.publisher ?? ""} onChange={(e) => setForm({ ...form, publisher: e.target.value })} className={inp} /></Field>

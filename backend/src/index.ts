@@ -34,8 +34,14 @@ export async function createApp(): Promise<Express> {
     ? process.env.CORS_ORIGIN.replace(/\/$/, '') 
     : 'http://localhost:3000';
 
+  const corsOrigins = corsOrigin.split(',').map(s => s.trim());
+
   app.use(cors({
-    origin: corsOrigin,
+    origin: (origin, cb) => {
+      // Allow requests with no origin (server-to-server, curl, etc)
+      if (!origin || corsOrigins.includes(origin)) return cb(null, true);
+      return cb(null, corsOrigins[0]);
+    },
     credentials: true,
   }));
   app.use(cookieParser());
