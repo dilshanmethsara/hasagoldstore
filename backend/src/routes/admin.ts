@@ -292,7 +292,7 @@ router.patch('/payment-methods/:id', requireAuth, requireRole(Role.ADMIN), async
     for (const [k, v] of Object.entries(req.body)) {
       body[k.replace(/_([a-z])/g, (_, c) => c.toUpperCase())] = v;
     }
-    const method = await paymentMethodService.update(req.params.id, body);
+    const method = await paymentMethodService.update(req.params.id as string, body);
     res.json(method);
   } catch (error) {
     res.status(400).json({ code: 'VALIDATION_ERROR', message: (error as Error).message });
@@ -301,7 +301,7 @@ router.patch('/payment-methods/:id', requireAuth, requireRole(Role.ADMIN), async
 
 router.delete('/payment-methods/:id', requireAuth, requireRole(Role.ADMIN), async (req, res) => {
   try {
-    await paymentMethodService.delete(req.params.id);
+    await paymentMethodService.delete(req.params.id as string);
     res.status(204).end();
   } catch (error) {
     res.status(400).json({ code: 'VALIDATION_ERROR', message: (error as Error).message });
@@ -311,7 +311,7 @@ router.delete('/payment-methods/:id', requireAuth, requireRole(Role.ADMIN), asyn
 router.patch('/payment-methods/:id/toggle', requireAuth, requireRole(Role.ADMIN), async (req, res) => {
   try {
     const { isActive } = req.body;
-    const method = await paymentMethodService.toggleActive(req.params.id, isActive);
+    const method = await paymentMethodService.toggleActive(req.params.id as string, isActive);
     res.json(method);
   } catch (error) {
     res.status(400).json({ code: 'VALIDATION_ERROR', message: (error as Error).message });
