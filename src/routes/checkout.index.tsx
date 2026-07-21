@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate, Navigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
-import { CreditCard, Wallet, Smartphone, ShieldCheck, ArrowLeft, Lock, Building2, Banknote } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { CreditCard, Wallet, Smartphone, ShieldCheck, ArrowLeft, Lock, Building2, Banknote, Upload, Image, X } from "lucide-react";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,8 @@ import { gameArt } from "@/lib/game-art";
 import { useAuth } from "@/lib/use-auth";
 import { useQuery } from "@tanstack/react-query";
 import { paymentMethodService } from "@/services/paymentMethodService";
-import type { PaymentMethodConfig } from "@/types";
+import { orderService } from "@/services/orderService";
+import type { PaymentMethodConfig, ExtraField } from "@/types";
 
 type Search = { game?: string; pkg?: string; pid?: string; sid?: string; promo?: string };
 
@@ -27,6 +28,10 @@ export const Route = createFileRoute("/checkout/")({
   component: CheckoutPage,
 });
 
+/* ───── hack: extraFields are passed via useCreateOrder hook which sends input.paymentMethod only.
+ *        We need to patch the hook result to also send receiptUrl & paymentDetails.
+ *        The hook calls orderService.create(input) — we intercept with a wrapper. ───── */
+
 function CheckoutPage() {
   const search = Route.useSearch();
   const navigate = useNavigate();
@@ -34,13 +39,20 @@ function CheckoutPage() {
   const { data: game, isLoading: gameLoading } = useGame(search.game);
   const { data: packages = [], isLoading: pkgsLoading } = usePackages(game?.id);
   const { data: wallet } = useWallet();
-  const create = useCreateOrder();
+  const createMut = useCreateOrder();
 
   const pkg = useMemo(() => packages.find((p) => p.id === search.pkg) ?? packages[0], [packages, search.pkg]);
   const loading = gameLoading || (!!game && pkgsLoading);
   const art = gameArt(search.game ?? "");
   const [method, setMethod] = useState("card");
   const [promoDiscount, setPromoDiscount] = useState(0);
+  const [extraValues, setExtraValues] = useState<Record<string, string>>({});
+  const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
+  const [receiptFile, setReceiptFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const ICON_MAP: Record<string, typeof Banknote> = { card: CreditCard, wallet: Wallet, ez_cash: Smartphone, frimi: Building2, bank_transfer: Banknote };
 
   const { data: methods = [] } = useQuery({
     queryKey: ["payment-methods"],
@@ -65,6 +77,10 @@ function CheckoutPage() {
       }
     })();
   }, [search.promo, pkg?.id]);
+
+  const currentMethod = methods.find((m) => m.slug === method);
+  const fields = currentMethod?.extra_fields ?? [];
+  const needsReceipt = ["ez_cash", "bank_transfer", "frimi"].includes(method);
 
   if (loading) {
     return (
@@ -92,22 +108,29 @@ function CheckoutPage() {
   const subtotal = Number(pkg.price_lkr);
   const total = Math.max(0, subtotal - promoDiscount);
 
-  const ICON_MAP: Record<string, typeof Banknote> = { card: CreditCard, wallet: Wallet, ez_cash: Smartphone, frimi: Building2, bank_transfer: Banknote };
-
   const placeOrder = async () => {
     if (!user) { navigate({ to: "/auth/login", search: { redirect: window.location.pathname + window.location.search } as never }); return; }
     if (!user.phone_verified) {
       navigate({ to: "/auth/verify-phone" });
       return;
     }
+
+    let receiptUrl: string | undefined;
+    if (receiptFile) {
+      setUploading(true);
+      receiptUrl = await orderService.uploadReceipt(receiptFile);
+      setUploading(false);
+    }
+
     try {
-      const order = await create.mutateAsync({
+      const order = await createMut.mutateAsync({
         game, pkg, playerId: search.pid ?? "",
         paymentMethod: method, promoCode: search.promo || undefined,
-      });
+        receiptUrl, paymentDetails: Object.keys(extraValues).length ? extraValues : undefined,
+      } as any);
       navigate({ to: "/checkout/success", search: { order: order.order_number } });
     } catch {
-      /* toast is shown by useCreateOrder.onError */
+      /* toast */
     }
   };
 
@@ -140,6 +163,7 @@ function CheckoutPage() {
               </dl>
             </div>
 
+            {/* ── Payment Method Selection ── */}
             <div className="glass-card rounded-3xl p-6">
               <h2 className="font-display text-lg font-bold text-foreground">Payment Method</h2>
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -150,7 +174,7 @@ function CheckoutPage() {
                   return (
                     <button
                       key={m.id} disabled={disabled}
-                      onClick={() => setMethod(m.slug)}
+                      onClick={() => { setMethod(m.slug); setExtraValues({}); setReceiptFile(null); setReceiptPreview(null); }}
                       className={cn(
                         "flex items-center gap-3 rounded-2xl border p-4 text-left transition-all disabled:opacity-40",
                         active
@@ -169,6 +193,49 @@ function CheckoutPage() {
                   );
                 })}
               </div>
+
+              {/* ── Dynamic Fields ── */}
+              {fields.length > 0 && (
+                <div className="mt-5 space-y-3">
+                  <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{currentMethod?.label} Details</h3>
+                  {fields.map((f) => (
+                    <DynamicField key={f.name} field={f} value={extraValues[f.name] ?? ""} onChange={(v) => setExtraValues({ ...extraValues, [f.name]: v })} />
+                  ))}
+                </div>
+              )}
+
+              {/* ── Instructions ── */}
+              {currentMethod?.instructions && (
+                <div className="mt-4 rounded-xl border border-white/5 bg-white/[0.03] p-3 text-xs text-muted-foreground whitespace-pre-wrap">
+                  {currentMethod.instructions}
+                </div>
+              )}
+
+              {/* ── Receipt Upload ── */}
+              {needsReceipt && (
+                <div className="mt-5">
+                  <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Payment Receipt</h3>
+                  <p className="mt-1 text-[11px] text-muted-foreground">Upload a screenshot or photo of your payment confirmation.</p>
+                  <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) { setReceiptFile(f); setReceiptPreview(URL.createObjectURL(f)); }
+                  }} />
+                  {receiptPreview ? (
+                    <div className="mt-3 relative inline-block">
+                      <img src={receiptPreview} alt="Receipt preview" className="max-h-40 rounded-xl object-contain border border-white/10" />
+                      <button onClick={() => { setReceiptFile(null); setReceiptPreview(null); if (fileRef.current) fileRef.current.value = ""; }}
+                        className="absolute -right-2 -top-2 grid h-6 w-6 place-items-center rounded-full bg-red-600 text-white shadow-lg">
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ) : (
+                    <button type="button" onClick={() => fileRef.current?.click()}
+                      className="mt-3 flex items-center gap-2 rounded-xl border border-dashed border-white/10 px-4 py-3 text-sm text-muted-foreground transition hover:border-primary/40 hover:text-foreground">
+                      <Upload className="h-4 w-4" /> Upload receipt
+                    </button>
+                  )}
+                </div>
+              )}
 
               {method === "card" && (
                 <div className="mt-5 grid gap-4 sm:grid-cols-2">
@@ -195,8 +262,8 @@ function CheckoutPage() {
                 <span className="text-sm text-muted-foreground">Total</span>
                 <span className="font-display text-3xl font-bold text-gradient">{lkr(total)}</span>
               </div>
-              <Button variant="hero" size="lg" className="mt-5 w-full" disabled={create.isPending} onClick={placeOrder}>
-                {create.isPending ? "Processing…" : <>Pay {lkr(total)} <ShieldCheck className="h-4 w-4" /></>}
+              <Button variant="hero" size="lg" className="mt-5 w-full" disabled={createMut.isPending || uploading} onClick={placeOrder}>
+                {createMut.isPending || uploading ? "Processing…" : <>Pay {lkr(total)} <ShieldCheck className="h-4 w-4" /></>}
               </Button>
               <p className="mt-3 text-center text-xs text-muted-foreground">By paying you agree to our <Link to="/terms" className="text-primary hover:underline">Terms</Link> & <Link to="/refund" className="text-primary hover:underline">Refund Policy</Link>.</p>
             </div>
@@ -207,6 +274,26 @@ function CheckoutPage() {
     </div>
   );
 }
+
+function DynamicField({ field, value, onChange }: { field: ExtraField; value: string; onChange: (v: string) => void }) {
+  const cls = "h-12 w-full rounded-xl border border-white/5 bg-white/5 px-4 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary/40 focus:outline-none";
+  if (field.type === "textarea") {
+    return (
+      <label className="block space-y-1">
+        <span className="text-xs font-medium text-muted-foreground">{field.label}{field.required ? " *" : ""}</span>
+        <textarea value={value} onChange={(e) => onChange(e.target.value)} className={`${cls} min-h-[80px] resize-y py-3`} placeholder={field.placeholder} required={field.required} />
+      </label>
+    );
+  }
+  return (
+    <label className="block space-y-1">
+      <span className="text-xs font-medium text-muted-foreground">{field.label}{field.required ? " *" : ""}</span>
+      <input type={field.type} value={value} onChange={(e) => onChange(e.target.value)} className={cls} placeholder={field.placeholder} required={field.required} />
+    </label>
+  );
+}
+
+const inp = "h-12 w-full rounded-xl border border-white/5 bg-white/5 px-4 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary/40 focus:outline-none";
 
 function Field({ label, value }: { label: string; value: string }) {
   return (
@@ -220,7 +307,7 @@ function FieldInput({ label, placeholder }: { label: string; placeholder?: strin
   return (
     <label className="block">
       <span className="mb-1.5 block text-xs font-medium text-muted-foreground">{label}</span>
-      <input placeholder={placeholder} className="h-12 w-full rounded-xl border border-white/5 bg-white/5 px-4 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary/40 focus:outline-none" />
+      <input placeholder={placeholder} className={inp} />
     </label>
   );
 }

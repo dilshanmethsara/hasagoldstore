@@ -28,6 +28,7 @@ export const paymentMethodService = {
     feeFixed?: number;
     sortOrder?: number;
     isActive?: boolean;
+    extraFields?: any;
   }) => {
     return await prisma.paymentMethod.create({ data });
   },
@@ -46,6 +47,7 @@ export const paymentMethodService = {
       feeFixed: number;
       sortOrder: number;
       isActive: boolean;
+      extraFields: any;
     }>,
   ) => {
     return await prisma.paymentMethod.update({ where: { id }, data });

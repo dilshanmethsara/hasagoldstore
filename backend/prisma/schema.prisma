@@ -195,6 +195,7 @@ model PaymentMethod {
   feeFixed    Decimal  @default(0) @map("fee_fixed")
   sortOrder   Int      @default(0) @map("sort_order")
   isActive    Boolean  @default(true) @map("is_active")
+  extraFields Json?    @map("extra_fields")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
@@ -232,6 +233,8 @@ model Order {
   paymentMethodId String?     @map("payment_method_id")
   status        OrderStatus   @default(pending) @map("status")
   promoCode     String?       @map("promo_code")
+  receiptUrl    String?       @map("receipt_url")
+  paymentDetails Json?        @map("payment_details")
   createdAt     DateTime      @default(now()) @map("created_at")
   updatedAt     DateTime      @updatedAt @map("updated_at")
 

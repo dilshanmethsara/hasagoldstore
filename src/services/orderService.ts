@@ -14,4 +14,16 @@ export const orderService = {
       status,
       note,
     }),
+  uploadReceipt: async (file: File): Promise<string> => {
+    const fd = new FormData();
+    fd.append("receipt", file);
+    const res = await fetch("/orders/upload-receipt", {
+      method: "POST",
+      credentials: "include",
+      body: fd,
+    });
+    if (!res.ok) throw new Error("Upload failed");
+    const data = await res.json();
+    return data.url;
+  },
 };

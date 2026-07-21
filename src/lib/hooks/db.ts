@@ -300,10 +300,12 @@ export type CreateOrderInput = {
   game: Game;
   pkg: Package;
   playerId: string;
-  paymentMethod: PaymentMethod;
+  paymentMethod: string;
   quantity?: number;
   promoCode?: string;
   useWallet?: boolean;
+  receiptUrl?: string;
+  paymentDetails?: Record<string, string>;
 };
 
 export function useCreateOrder() {
@@ -318,6 +320,8 @@ export function useCreateOrder() {
         quantity: input.quantity ?? 1,
         promoCode: input.promoCode,
         useWallet: input.useWallet,
+        receiptUrl: input.receiptUrl,
+        paymentDetails: input.paymentDetails,
       }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["orders"] });

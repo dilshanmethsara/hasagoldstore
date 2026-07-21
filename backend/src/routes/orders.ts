@@ -4,6 +4,7 @@ import { ApiError, CreateOrderInput } from '../types';
 import { OrderStatus } from '@prisma/client';
 import { requireAuth } from '../middleware/auth';
 import { AuthRequest } from '../middleware/auth';
+import { upload } from '../lib/cloudinary';
 
 const router = Router();
 
@@ -82,6 +83,20 @@ router.patch('/:id/status', async (req, res) => {
     } else {
       res.status(500).json({ code: 'INTERNAL_ERROR', message: 'Failed to update order status' });
     }
+  }
+});
+
+// Upload payment receipt
+router.post('/upload-receipt', requireAuth, upload.single('receipt'), async (req: AuthRequest, res) => {
+  try {
+    const file = req.file as any;
+    if (!file?.path) {
+      res.status(400).json({ code: 'NO_FILE', message: 'No receipt uploaded' });
+      return;
+    }
+    res.json({ url: file.path });
+  } catch (error) {
+    res.status(500).json({ code: 'INTERNAL_ERROR', message: 'Failed to upload receipt' });
   }
 });
 

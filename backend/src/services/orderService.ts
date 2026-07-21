@@ -74,6 +74,8 @@ export class OrderService {
         discountLkr: discount,
         totalLkr: total,
         paymentMethod: input.paymentMethod,
+        receiptUrl: input.receiptUrl,
+        paymentDetails: input.paymentDetails ?? undefined,
         status: OrderStatus.pending,
         promoCode: input.promoCode,
       },

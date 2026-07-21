@@ -111,8 +111,17 @@ export interface PaymentMethodConfig {
   fee_fixed: number;
   sort_order: number;
   is_active: boolean;
+  extra_fields: ExtraField[] | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface ExtraField {
+  name: string;
+  label: string;
+  type: "text" | "number" | "textarea";
+  required: boolean;
+  placeholder?: string;
 }
 
 export interface OrderTimelineEntry {
@@ -136,6 +145,8 @@ export interface Order {
   total_lkr: number;
   currency: string;
   payment_method: PaymentMethod;
+  receipt_url: string | null;
+  payment_details: Record<string, string> | null;
   status: OrderStatus;
   promo_code: string | null;
   timeline: OrderTimelineEntry[];

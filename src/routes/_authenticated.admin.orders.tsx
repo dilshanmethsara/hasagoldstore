@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useAdminOrders, useUpdateOrderStatus } from "@/lib/hooks/db";
 import { lkr, formatDate } from "@/lib/format";
-import { Search } from "lucide-react";
+import { Search, Image, X } from "lucide-react";
 import type { OrderStatus } from "@/types";
 const STATUSES: OrderStatus[] = ["pending", "paid", "processing", "delivered", "completed", "paused", "cancelled", "failed", "refunded"];
 
@@ -15,6 +15,7 @@ function OrdersPage() {
   const update = useUpdateOrderStatus();
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState<OrderStatus | "all">("all");
+  const [receiptUrl, setReceiptUrl] = useState<string | null>(null);
 
   const filtered = (orders ?? []).filter((o) => {
     if (filter !== "all" && o.status !== filter) return false;
@@ -62,34 +63,81 @@ function OrdersPage() {
                 <th className="px-4 py-3">Order</th>
                 <th className="px-4 py-3">Player ID</th>
                 <th className="px-4 py-3">Amount</th>
+                <th className="px-4 py-3">Method</th>
+                <th className="px-4 py-3">Receipt</th>
+                <th className="px-4 py-3">Payment Details</th>
                 <th className="px-4 py-3">Date</th>
                 <th className="px-4 py-3">Status</th>
               </tr>
             </thead>
             <tbody>
-              {isLoading && <tr><td colSpan={5} className="px-4 py-10 text-center text-muted-foreground">Loading orders…</td></tr>}
-              {!isLoading && filtered.length === 0 && <tr><td colSpan={5} className="px-4 py-10 text-center text-muted-foreground">No orders match.</td></tr>}
-              {filtered.map((o) => (
-                <tr key={o.id} className="border-b border-white/5 last:border-b-0 hover:bg-white/[0.02]">
-                  <td className="px-4 py-3 font-mono text-xs text-foreground">#{o.order_number}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{o.player_id ?? "—"}</td>
-                  <td className="px-4 py-3 font-semibold text-foreground">{lkr(Number(o.total_lkr))}</td>
-                  <td className="px-4 py-3 text-xs text-muted-foreground">{formatDate(o.created_at)}</td>
-                  <td className="px-4 py-3">
-                    <select
-                      value={o.status}
-                      onChange={(e) => update.mutate({ id: o.id, status: e.target.value as OrderStatus })}
-                      className="rounded-lg border border-white/10 bg-background/60 px-2 py-1 text-xs font-semibold capitalize text-foreground focus:border-primary/40 focus:outline-none"
-                    >
-                      {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
-                    </select>
-                  </td>
-                </tr>
-              ))}
+              {isLoading && <tr><td colSpan={8} className="px-4 py-10 text-center text-muted-foreground">Loading orders…</td></tr>}
+              {!isLoading && filtered.length === 0 && <tr><td colSpan={8} className="px-4 py-10 text-center text-muted-foreground">No orders match.</td></tr>}
+              {filtered.map((o) => {
+                const details = o.payment_details as Record<string, string> | null;
+                const hasDetails = details && Object.keys(details).length > 0;
+                return (
+                  <tr key={o.id} className="border-b border-white/5 last:border-b-0 hover:bg-white/[0.02]">
+                    <td className="px-4 py-3 font-mono text-xs text-foreground">#{o.order_number}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{o.player_id ?? "—"}</td>
+                    <td className="px-4 py-3 font-semibold text-foreground">{lkr(Number(o.total_lkr))}</td>
+                    <td className="px-4 py-3">
+                      <span className="rounded-full bg-white/5 px-2 py-0.5 text-[10px] font-bold uppercase text-muted-foreground">
+                        {o.payment_method}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      {o.receipt_url ? (
+                        <button onClick={() => setReceiptUrl(o.receipt_url!)} className="group relative grid h-9 w-9 place-items-center rounded-lg border border-white/5 bg-white/5 transition hover:border-primary/40">
+                          <Image className="h-4 w-4 text-muted-foreground group-hover:text-primary" />
+                        </button>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      )}
+                    </td>
+                    <td className="max-w-[200px] px-4 py-3">
+                      {hasDetails ? (
+                        <div className="space-y-0.5">
+                          {Object.entries(details).map(([k, v]) => (
+                            <p key={k} className="truncate text-xs">
+                              <span className="font-medium text-muted-foreground">{k}:</span>{" "}
+                              <span className="text-foreground">{v}</span>
+                            </p>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-xs text-muted-foreground">{formatDate(o.created_at)}</td>
+                    <td className="px-4 py-3">
+                      <select
+                        value={o.status}
+                        onChange={(e) => update.mutate({ id: o.id, status: e.target.value as OrderStatus })}
+                        className="rounded-lg border border-white/10 bg-background/60 px-2 py-1 text-xs font-semibold capitalize text-foreground focus:border-primary/40 focus:outline-none"
+                      >
+                        {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+                      </select>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
       </div>
+
+      {/* ── Receipt Lightbox ── */}
+      {receiptUrl && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-black/80 p-4 backdrop-blur-xl" onClick={() => setReceiptUrl(null)}>
+          <div onClick={(e) => e.stopPropagation()} className="relative max-h-[90vh] max-w-[90vw]">
+            <img src={receiptUrl} alt="Payment receipt" className="max-h-[85vh] rounded-2xl object-contain shadow-2xl" />
+            <button onClick={() => setReceiptUrl(null)} className="absolute -right-3 -top-3 grid h-10 w-10 place-items-center rounded-full bg-red-600 text-white shadow-xl transition hover:bg-red-700">
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

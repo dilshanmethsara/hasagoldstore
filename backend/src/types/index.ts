@@ -56,8 +56,10 @@ export interface CreateOrderInput {
   gameId: string;
   packageId: string;
   playerId: string;
-  paymentMethod: PaymentMethod;
+  paymentMethod: string;
   quantity?: number;
   promoCode?: string;
   useWallet?: boolean;
+  receiptUrl?: string;
+  paymentDetails?: Record<string, string>;
 }

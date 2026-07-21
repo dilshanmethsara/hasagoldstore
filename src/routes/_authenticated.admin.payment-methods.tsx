@@ -1,9 +1,9 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { Banknote, Plus, Pencil, Trash2, X, Eye, EyeOff } from "lucide-react";
+import { Banknote, Plus, Pencil, Trash2, X, Eye, EyeOff, GripVertical } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { paymentMethodService } from "@/services/paymentMethodService";
-import type { PaymentMethodConfig } from "@/types";
+import type { PaymentMethodConfig, ExtraField } from "@/types";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/_authenticated/admin/payment-methods")({
@@ -63,7 +63,7 @@ function PaymentMethodsPage() {
             <div className="min-w-0 flex-1">
               <p className="font-semibold text-foreground">{m.label}</p>
               <p className="truncate text-xs text-muted-foreground">
-                /{m.slug} &middot; {m.description ?? "—"}
+                /{m.slug} &middot; {m.description ?? "—"} {m.extra_fields?.length ? `· ${m.extra_fields.length} fields` : ""}
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -114,6 +114,16 @@ function PaymentMethodsPage() {
 function MethodForm({ initial, onClose, onSave, saving }: { initial: FormData; onClose: () => void; onSave: (v: FormData) => void; saving: boolean }) {
   const [form, setForm] = useState<FormData>(initial);
   const isNew = !initial.id;
+
+  const fields: ExtraField[] = (form as any).extra_fields ?? [];
+  const setFields = (f: ExtraField[]) => setForm({ ...form, extra_fields: f });
+
+  const addField = () => setFields([...fields, { name: "", label: "", type: "text", required: false }]);
+  const removeField = (i: number) => setFields(fields.filter((_, idx) => idx !== i));
+  const updateField = (i: number, patch: Partial<ExtraField>) => {
+    setFields(fields.map((f, idx) => idx === i ? { ...f, ...patch } : f));
+  };
+
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4 backdrop-blur-sm" onClick={onClose}>
       <div onClick={(e) => e.stopPropagation()} className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-3xl border border-white/10 bg-background p-6 shadow-2xl">
@@ -122,12 +132,14 @@ function MethodForm({ initial, onClose, onSave, saving }: { initial: FormData; o
           <button onClick={onClose} className="grid h-8 w-8 place-items-center rounded-lg text-muted-foreground hover:bg-white/5"><X className="h-4 w-4" /></button>
         </div>
         <form className="mt-5 space-y-4" onSubmit={(e) => { e.preventDefault(); onSave(form); }}>
-          <Field label="Slug">
-            <input required value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "_") })} className={inp} placeholder="card" />
-          </Field>
-          <Field label="Label">
-            <input required value={form.label} onChange={(e) => setForm({ ...form, label: e.target.value })} className={inp} placeholder="Credit / Debit Card" />
-          </Field>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Slug">
+              <input required value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "_") })} className={inp} placeholder="card" />
+            </Field>
+            <Field label="Label">
+              <input required value={form.label} onChange={(e) => setForm({ ...form, label: e.target.value })} className={inp} placeholder="Credit / Debit Card" />
+            </Field>
+          </div>
           <Field label="Description">
             <input value={form.description ?? ""} onChange={(e) => setForm({ ...form, description: e.target.value })} className={inp} placeholder="Secure card payments" />
           </Field>
@@ -161,6 +173,44 @@ function MethodForm({ initial, onClose, onSave, saving }: { initial: FormData; o
               <input type="checkbox" checked={!!form.is_active} onChange={(e) => setForm({ ...form, is_active: e.target.checked })} /> Active
             </label>
           </div>
+
+          {/* ── Extra Fields ── */}
+          <div className="border-t border-white/10 pt-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-foreground">Extra Fields</h3>
+              <button type="button" onClick={addField} className="flex items-center gap-1 text-xs font-medium text-primary hover:text-primary/80 transition-colors">
+                <Plus className="h-3 w-3" /> Add field
+              </button>
+            </div>
+            <p className="mt-1 text-[11px] text-muted-foreground">Custom inputs shown at checkout for this method.</p>
+            {fields.length === 0 && <p className="mt-2 text-xs text-muted-foreground italic">No custom fields.</p>}
+            <div className="mt-3 space-y-2">
+              {fields.map((f, i) => (
+                <div key={i} className="flex items-start gap-2 rounded-xl border border-white/5 bg-white/[0.03] p-3">
+                  <div className="grid h-8 w-8 shrink-0 place-items-center pt-1 text-muted-foreground">
+                    <GripVertical className="h-3.5 w-3.5" />
+                  </div>
+                  <div className="grid min-w-0 flex-1 grid-cols-2 gap-2">
+                    <input value={f.name} onChange={(e) => updateField(i, { name: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "_") })} className={`${inp} h-8 text-xs`} placeholder="field_name" />
+                    <input value={f.label} onChange={(e) => updateField(i, { label: e.target.value })} className={`${inp} h-8 text-xs`} placeholder="Label" />
+                    <select value={f.type} onChange={(e) => updateField(i, { type: e.target.value as ExtraField["type"] })} className={`${inp} h-8 text-xs`}>
+                      <option value="text">Text</option>
+                      <option value="number">Number</option>
+                      <option value="textarea">Textarea</option>
+                    </select>
+                    <input value={f.placeholder ?? ""} onChange={(e) => updateField(i, { placeholder: e.target.value })} className={`${inp} h-8 text-xs`} placeholder="Placeholder" />
+                    <label className="col-span-2 flex items-center gap-2 text-xs text-muted-foreground">
+                      <input type="checkbox" checked={f.required} onChange={(e) => updateField(i, { required: e.target.checked })} /> Required
+                    </label>
+                  </div>
+                  <button type="button" onClick={() => removeField(i)} className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-red-400 hover:bg-red-500/20">
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
             <Button type="submit" variant="hero" disabled={saving}>{saving ? "Saving…" : isNew ? "Create" : "Save"}</Button>
