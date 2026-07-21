@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { Gamepad2, Plus, Pencil, Trash2, Eye, EyeOff, X } from "lucide-react";
-import { useGames, useUpsertGame, useDeleteGame, useToggleGameLive, type Game } from "@/lib/hooks/db";
+import { useAdminGames, useUpsertGame, useDeleteGame, useToggleGameLive, type Game } from "@/lib/hooks/db";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/_authenticated/admin/games")({
@@ -18,7 +18,7 @@ type GameForm = Partial<Game> & {
 const API_BASE = (import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3001").replace(/\/$/, "");
 
 function GamesPage() {
-  const { data: games, isLoading } = useGames();
+  const { data: games, isLoading } = useAdminGames();
   const upsert = useUpsertGame();
   const del = useDeleteGame();
   const toggle = useToggleGameLive();

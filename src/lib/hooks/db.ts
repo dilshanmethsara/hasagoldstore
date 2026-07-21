@@ -78,8 +78,12 @@ function toastError(e: unknown) {
 
 /* ===================== READS (public) ===================== */
 
-export function useGames() {
+export function useGames(onlyLive = true) {
   return useQuery({ queryKey: ["games"], queryFn: () => gameService.list() });
+}
+
+export function useAdminGames() {
+  return useQuery({ queryKey: ["admin", "games"], queryFn: () => adminService.listGames() });
 }
 
 export function useGame(slug: string | undefined) {

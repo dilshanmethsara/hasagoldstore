@@ -128,6 +128,34 @@ router.post('/games', requireAuth, requireRole(Role.ADMIN), async (req, res) => 
   }
 });
 
+// Update game (admin only)
+router.patch('/games/:id', requireAuth, requireRole(Role.ADMIN), async (req, res) => {
+  try {
+    const game = await adminService.toggleGameLive(req.params.id as string, req.body.isLive ?? true);
+    res.json(game);
+  } catch (error) {
+    if (error instanceof ApiError) {
+      res.status(400).json({ code: error.code, message: error.message });
+    } else {
+      res.status(500).json({ code: 'INTERNAL_ERROR', message: 'Failed to update game' });
+    }
+  }
+});
+
+// Delete game (admin only)
+router.delete('/games/:id', requireAuth, requireRole(Role.ADMIN), async (req, res) => {
+  try {
+    await adminService.deleteGame(req.params.id as string);
+    res.json({ success: true });
+  } catch (error) {
+    if (error instanceof ApiError) {
+      res.status(400).json({ code: error.code, message: error.message });
+    } else {
+      res.status(500).json({ code: 'INTERNAL_ERROR', message: 'Failed to delete game' });
+    }
+  }
+});
+
 // List all packages (admin only)
 router.get('/packages', requireAuth, requireRole(Role.ADMIN, Role.MODERATOR), async (_req, res) => {
   try {
