@@ -4,7 +4,6 @@ import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { Button } from "@/components/ui/button";
 import { GAMES } from "@/lib/games";
-import heroCharImg from "@/assets/hero-characters.png";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { useGames } from "@/lib/hooks/db";
@@ -147,7 +146,7 @@ function Hero() {
               {["bg-primary", "bg-fuchsia-500", "bg-emerald-500", "bg-amber-500"].map((bg, idx) => (
                 <div key={idx} className={cn("grid h-9 w-9 place-items-center rounded-full border-2 border-background text-[11px] font-bold text-white shadow-md", bg)}>
                   {["A", "K", "D", "S"][idx]}
-                </div>
+            </div>
               ))}
             </div>
             <div>
@@ -157,147 +156,107 @@ function Hero() {
               </div>
               <p className="text-[11px] text-muted-foreground">based on 25,000+ verified customer reviews</p>
             </div>
-          </div>
-        </div>
-
-        {/* Right Column: Quick Top-Up Widget & Character Art Overlay */}
-        <div className="relative flex justify-center lg:justify-end animate-fade-up" style={{ animationDelay: "0.2s" }}>
-          
-          {/* Animated Background Character Artwork */}
-          <div className="absolute right-[-10%] top-[-10%] -z-10 w-[110%] aspect-square opacity-20 lg:opacity-30 pointer-events-none scale-105 select-none animate-float">
-            <img 
-              src={heroCharImg} 
-              alt="Game Characters Artwork" 
-              className="w-full h-full object-contain filter drop-shadow-[0_0_30px_rgba(var(--primary),0.3)]" 
-            />
-          </div>
-
-          {/* Quick Top-Up Calculator Widget */}
-          <div className="glass-panel w-full max-w-[420px] rounded-3xl p-5 sm:p-6 shadow-2xl relative overflow-hidden border-primary/20">
-            {/* Top Glow bar depending on selected game */}
-            <div className={cn(
-              "absolute top-0 left-0 right-0 h-1 transition-colors duration-500",
-              selectedGame === "free-fire" && "bg-orange-500",
-              selectedGame === "pubg-mobile" && "bg-amber-400",
-              selectedGame === "mobile-legends" && "bg-indigo-500",
-              selectedGame === "blood-strike" && "bg-rose-500"
-            )} />
-
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Quick Top-Up</h3>
-              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-400">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                Live Stock
-              </span>
-            </div>
-
-            {/* Game Selector Tabs */}
-            <div className="grid grid-cols-4 gap-1.5 bg-muted/40 p-1 rounded-xl border border-border/50 mb-4">
-              {GAMES.map((game) => (
-                <button
-                  key={game.slug}
-                  onClick={() => setSelectedGame(game.slug)}
-                  className={cn(
-                    "flex flex-col items-center justify-center py-2 px-1 rounded-lg transition-all duration-300 text-center gap-1",
-                    selectedGame === game.slug 
-                      ? "bg-card text-primary shadow-md border border-primary/20" 
-                      : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
-                  )}
-                >
-                  <img src={game.image} className="w-6 h-6 rounded-md object-cover" alt="" />
-                  <span className="text-[9px] font-bold tracking-tight truncate max-w-full">{game.name.split(" ")[0]}</span>
-                </button>
-              ))}
-            </div>
-
-            {/* Input fields */}
-            <div className="space-y-3 mb-4">
-              <div>
-                <label className="block text-xs font-semibold text-muted-foreground mb-1">Player ID</label>
-                <input
-                  type="text"
-                  placeholder="Enter Player ID"
-                  value={playerId}
-                  onChange={(e) => setPlayerId(e.target.value)}
-                  className="w-full h-11 px-3 bg-muted/40 border border-border/60 rounded-xl text-sm placeholder:text-muted-foreground focus:border-primary/50 focus:bg-muted/70 focus:outline-none transition-colors"
-                />
-              </div>
-
-              {selectedGame === "mobile-legends" && (
-                <div className="animate-fade-in">
-                  <label className="block text-xs font-semibold text-muted-foreground mb-1">Server ID</label>
-                  <input
-                    type="text"
-                    placeholder="Enter Server ID"
-                    value={serverId}
-                    onChange={(e) => setServerId(e.target.value)}
-                    className="w-full h-11 px-3 bg-muted/40 border border-border/60 rounded-xl text-sm placeholder:text-muted-foreground focus:border-primary/50 focus:bg-muted/70 focus:outline-none transition-colors"
-                  />
-                </div>
-              )}
-            </div>
-
-            {/* Packages Grid */}
-            <div className="mb-5">
-              <label className="block text-xs font-semibold text-muted-foreground mb-1.5">Select Amount</label>
-              <div className="grid grid-cols-2 gap-2 max-h-[140px] overflow-y-auto pr-1">
-                {packages.map((pkg) => (
-                  <button
-                    key={pkg.id}
-                    onClick={() => setSelectedPkgId(pkg.id)}
-                    className={cn(
-                      "flex flex-col justify-between p-2.5 rounded-xl border text-left transition-all relative overflow-hidden",
-                      selectedPkgId === pkg.id 
-                        ? "border-primary bg-primary/5 shadow-inner" 
-                        : "border-border/50 bg-muted/20 hover:border-primary/30"
-                    )}
-                  >
-                    {pkg.popular && (
-                      <span className="absolute top-0 right-0 rounded-bl-lg bg-primary px-1.5 py-0.5 text-[8px] font-bold text-primary-foreground">
-                        BEST
-                      </span>
-                    )}
-                    <span className="text-[11px] font-bold truncate text-foreground">{pkg.amount}</span>
-                    <div className="flex items-center justify-between mt-1">
-                      <span className="text-xs font-bold text-primary">${pkg.price.toFixed(2)}</span>
-                      {selectedPkgId === pkg.id && <Check className="h-3 w-3 text-primary" />}
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Price calculation and checkout */}
-            <div className="border-t border-border/50 pt-4">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <span className="text-xs text-muted-foreground">Total Price</span>
-                  <p className="text-lg font-bold text-foreground">
-                    {selectedPkg ? `$${selectedPkg.price.toFixed(2)}` : "$0.00"}
-                  </p>
-                </div>
-                {selectedPkg?.bonus && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-[10px] font-bold text-emerald-400">
-                    {selectedPkg.bonus}
-                  </span>
-                )}
-              </div>
-
-              <Button
-                variant="hero"
-                size="lg"
-                onClick={handleCheckout}
-                disabled={!canCheckout}
-                className="w-full shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all font-semibold rounded-xl"
-              >
-                Proceed to Checkout
-                <ChevronRight className="h-4 w-4 ml-1" />
-              </Button>
-            </div>
-          </div>
         </div>
       </div>
+      {/* Right Column: Featured Game Showcase */}
+      <FeaturedGameShowcase />
+    </div>
     </section>
+  );
+}
+
+function FeaturedGameShowcase() {
+  const navigate = useNavigate();
+  const { data: games } = useGames();
+  const [slideIdx, setSlideIdx] = useState(0);
+  const [prevIdx, setPrevIdx] = useState(0);
+  const [direction, setDirection] = useState<"next" | "prev">("next");
+
+  const featured = games && games.length > 0
+    ? games.slice(0, 4)
+    : GAMES;
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setPrevIdx(slideIdx);
+      setDirection("next");
+      setSlideIdx(prev => (prev + 1) % featured.length);
+    }, 4500);
+    return () => clearInterval(timer);
+  }, [featured.length, slideIdx]);
+
+  const current = featured[slideIdx];
+  if (!current || featured.length === 0) return null;
+
+  const art = gameArt(current.slug);
+  // Try: backend packages → mock GAMES packages → default
+  const backendPkgs = (current as any).packages;
+  const pkg = backendPkgs?.[0];
+  const rawPrice = pkg?.price_lkr ?? pkg?.priceLkr ?? pkg?.price;
+  const pkgPrice = Number(rawPrice ?? (GAMES.find(g => g.slug === current.slug)?.packages?.[0]?.price ?? 150));
+
+  // API returns snake_case keys (Prisma @map serializes field names)
+  const heroSrc = (current as any).hero_image || (current as any).card_image || (current as any).heroImage || (current as any).cardImage || (current as any).image_url || (current as any).imageUrl || art.image;
+
+  return (
+    <div className="relative animate-fade-up w-full max-w-[420px] lg:max-w-[460px] mx-auto" style={{ animationDelay: "0.3s" }}>
+      <div className="glass-panel rounded-3xl overflow-hidden relative border-primary/10 shadow-2xl">
+        {/* Image area with crossfade */}
+        <div className="relative h-48 sm:h-56 overflow-hidden bg-muted">
+          {/* Current slide image */}
+          <img
+            key={`img-${slideIdx}`}
+            src={heroSrc}
+            alt=""
+            className="absolute inset-0 w-full h-full object-cover animate-fade-in"
+            style={{ animationDuration: "0.6s" }}
+          />
+          <div className={`absolute inset-0 bg-gradient-to-t ${art.accent} to-transparent`} />
+          <div className="absolute inset-0 bg-gradient-to-b from-background/40 via-transparent to-background/80" />
+
+          {/* Game badge */}
+          <div className="absolute top-3 left-3 flex items-center gap-2">
+            <div className="rounded-xl bg-background/60 backdrop-blur-md px-2.5 py-1 border border-white/10">
+              <span className="text-xs font-bold text-white">Featured</span>
+            </div>
+          </div>
+
+          {/* Slide dots */}
+          <div className="absolute bottom-3 right-3 flex gap-1.5">
+            {featured.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => { setPrevIdx(slideIdx); setDirection(i > slideIdx ? "next" : "prev"); setSlideIdx(i); }}
+                className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${
+                  i === slideIdx ? "bg-white w-4" : "bg-white/40 hover:bg-white/60"
+                }`}
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="p-5 sm:p-6">
+          <h3 className="font-display text-lg font-bold text-foreground">{current.name}</h3>
+          <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
+            {(current as any).tagline ?? (current as any).publisher ?? `${art.currency} Top-Up`}
+          </p>
+
+          {/* Price highlight */}
+          <div className="mt-3 flex items-baseline gap-1.5">
+            <span className="text-2xl font-black text-primary">LKR {pkgPrice.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}</span>
+            <span className="text-xs text-muted-foreground">starting price</span>
+          </div>
+
+          <button
+            onClick={() => navigate({ to: "/games/$slug", params: { slug: current.slug } })}
+            className="mt-4 w-full h-11 rounded-xl bg-primary text-primary-foreground font-bold text-sm hover:brightness-110 transition-all shadow-lg shadow-primary/20 active:scale-[0.98]"
+          >
+            Top Up Now
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 

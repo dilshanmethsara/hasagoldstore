@@ -192,16 +192,34 @@ export class AdminService {
     badge?: string;
     isActive?: boolean;
     sortOrder?: number;
+    // snake_case from frontend
+    game_id?: string;
+    price_lkr?: number;
+    is_active?: boolean;
+    sort_order?: number;
   }) {
-    if (data.id) {
+    const mapped = {
+      ...data,
+      gameId: data.game_id ?? data.gameId,
+      priceLkr: data.price_lkr ?? data.priceLkr,
+      isActive: data.is_active ?? data.isActive,
+      sortOrder: data.sort_order ?? data.sortOrder,
+    };
+    // Remove snake_case keys
+    delete (mapped as any).game_id;
+    delete (mapped as any).price_lkr;
+    delete (mapped as any).is_active;
+    delete (mapped as any).sort_order;
+
+    if (mapped.id) {
       return await prisma.package.update({
-        where: { id: data.id },
-        data,
+        where: { id: mapped.id },
+        data: mapped,
       });
     }
 
     return await prisma.package.create({
-      data,
+      data: mapped,
     });
   }
 

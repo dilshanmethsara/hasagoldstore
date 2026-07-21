@@ -184,6 +184,34 @@ router.post('/packages', requireAuth, requireRole(Role.ADMIN), async (req, res) 
   }
 });
 
+// Update package (admin only)
+router.patch('/packages/:id', requireAuth, requireRole(Role.ADMIN), async (req, res) => {
+  try {
+    const pkg = await adminService.togglePackage(req.params.id as string, req.body.isActive ?? true);
+    res.json(pkg);
+  } catch (error) {
+    if (error instanceof ApiError) {
+      res.status(400).json({ code: error.code, message: error.message });
+    } else {
+      res.status(500).json({ code: 'INTERNAL_ERROR', message: 'Failed to update package' });
+    }
+  }
+});
+
+// Delete package (admin only)
+router.delete('/packages/:id', requireAuth, requireRole(Role.ADMIN), async (req, res) => {
+  try {
+    await adminService.deletePackage(req.params.id as string);
+    res.json({ success: true });
+  } catch (error) {
+    if (error instanceof ApiError) {
+      res.status(400).json({ code: error.code, message: error.message });
+    } else {
+      res.status(500).json({ code: 'INTERNAL_ERROR', message: 'Failed to delete package' });
+    }
+  }
+});
+
 // List all tickets (admin only)
 router.get('/tickets', requireAuth, requireRole(Role.ADMIN, Role.MODERATOR), async (req, res) => {
   try {
