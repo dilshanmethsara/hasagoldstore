@@ -86,15 +86,21 @@ function GamesPage() {
               if (v.card_image_file) formData.append('card_image', v.card_image_file);
               if (v.hero_image_file) formData.append('hero_image', v.hero_image_file);
               try {
+                const token = localStorage.getItem('auth_token');
                 const uploadRes = await fetch('http://localhost:3001/admin/games/upload', {
                   method: 'POST',
                   credentials: 'include',
+                  headers: token ? { Authorization: `Bearer ${token}` } : {},
                   body: formData,
                 });
-                const uploadData = await uploadRes.json();
-                v = { ...v, ...uploadData };
+                if (uploadRes.ok) {
+                  const uploadData = await uploadRes.json();
+                  v = { ...v, ...uploadData };
+                } else {
+                  console.error('Upload failed:', uploadRes.status, await uploadRes.text());
+                }
               } catch (error) {
-                console.error('Upload failed:', error);
+                console.error('Upload error:', error);
               }
             }
             upsert.mutate(v, { onSuccess: () => setEditing(null) });
