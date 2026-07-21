@@ -2,9 +2,11 @@ import { Router } from 'express';
 import { orderService } from '../services/orderService';
 import { ApiError, CreateOrderInput } from '../types';
 import { OrderStatus } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 import { requireAuth } from '../middleware/auth';
 import { AuthRequest } from '../middleware/auth';
 import { upload } from '../lib/cloudinary';
+import { sendOrderConfirmationEmail } from '../lib/email';
 
 const router = Router();
 
@@ -14,6 +16,28 @@ router.post('/', requireAuth, async (req: AuthRequest, res) => {
     const userId = req.user!.id;
     const input: CreateOrderInput = req.body;
     const order = await orderService.create(input, userId);
+
+    // Send order confirmation email
+    try {
+      const userEmail = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { email: true },
+      });
+      if (userEmail?.email) {
+        sendOrderConfirmationEmail(userEmail.email, {
+          orderNumber: order.order_number,
+          gameName: order.gameName,
+          packageLabel: order.package_label,
+          playerId: order.player_id,
+          totalLkr: String(order.total_lkr),
+          paymentMethod: order.payment_method,
+          receiptUrl: order.receipt_url,
+        });
+      }
+    } catch (emailErr) {
+      console.error('[Order] Failed to send confirmation email:', emailErr);
+    }
+
     res.json(order);
   } catch (error) {
     if (error instanceof ApiError) {

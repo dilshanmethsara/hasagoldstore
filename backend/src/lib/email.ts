@@ -243,3 +243,100 @@ export async function sendWelcomeEmail(email: string, displayName: string): Prom
   const template = generateWelcomeEmail(displayName);
   return sendEmail(email, template);
 }
+
+export function generateOrderConfirmationEmail(params: {
+  orderNumber: string;
+  gameName: string;
+  packageLabel: string;
+  playerId: string;
+  totalLkr: string;
+  paymentMethod: string;
+  receiptUrl?: string | null;
+}): EmailTemplate {
+  const { orderNumber, gameName, packageLabel, playerId, totalLkr, paymentMethod, receiptUrl } = params;
+  const subject = `Order Confirmed — #${orderNumber} 🎉`;
+
+  const html = `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Order Confirmation</title></head>
+<body style="margin:0;padding:0;background-color:#0a0a0f;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background-color:#0a0a0f;">
+<tr><td align="center" style="padding:40px 16px;">
+<table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
+
+<tr><td align="center" style="padding-bottom:32px;">
+<h1 style="margin:0;font-size:28px;font-weight:800;color:#fff;letter-spacing:-0.5px;">
+<span style="background:linear-gradient(135deg,#f59e0b,#d97706);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">HASA</span>
+<span style="color:#fff;"> GOLD STORE</span>
+</h1>
+</td></tr>
+
+<tr><td align="center" style="background:linear-gradient(135deg,#1a1a2e,#16213e);border-radius:16px;padding:40px 32px;border:1px solid rgba(255,255,255,0.06);">
+<div style="width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#10b981,#059669);margin:0 auto 20px;display:flex;align-items:center;justify-content:center;">
+<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+</div>
+<h2 style="margin:0 0 8px;font-size:24px;font-weight:700;color:#fff;">Order Placed! 🎉</h2>
+<p style="margin:0;font-size:14px;color:#94a3b8;">Thank you for your purchase. Your order is being processed.</p>
+</td></tr>
+
+<tr><td style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:16px;padding:32px;margin-top:24px;">
+<h3 style="margin:0 0 20px;font-size:16px;font-weight:600;color:#f59e0b;text-transform:uppercase;letter-spacing:1px;">Order Summary</h3>
+<table width="100%" cellpadding="0" cellspacing="0">
+<tr><td style="padding:8px 0;"><span style="color:#94a3b8;font-size:13px;">Order #</span></td><td style="text-align:right;"><span style="color:#fff;font-weight:600;font-family:monospace;font-size:13px;">${orderNumber}</span></td></tr>
+<tr><td style="padding:8px 0;border-top:1px solid rgba(255,255,255,0.04);"><span style="color:#94a3b8;font-size:13px;">Game</span></td><td style="text-align:right;border-top:1px solid rgba(255,255,255,0.04);"><span style="color:#fff;font-weight:600;font-size:13px;">${gameName}</span></td></tr>
+<tr><td style="padding:8px 0;border-top:1px solid rgba(255,255,255,0.04);"><span style="color:#94a3b8;font-size:13px;">Package</span></td><td style="text-align:right;border-top:1px solid rgba(255,255,255,0.04);"><span style="color:#fff;font-weight:600;font-size:13px;">${packageLabel}</span></td></tr>
+<tr><td style="padding:8px 0;border-top:1px solid rgba(255,255,255,0.04);"><span style="color:#94a3b8;font-size:13px;">Player ID</span></td><td style="text-align:right;border-top:1px solid rgba(255,255,255,0.04);"><span style="color:#fff;font-weight:600;font-size:13px;">${playerId}</span></td></tr>
+<tr><td style="padding:8px 0;border-top:1px solid rgba(255,255,255,0.04);"><span style="color:#94a3b8;font-size:13px;">Payment</span></td><td style="text-align:right;border-top:1px solid rgba(255,255,255,0.04);"><span style="color:#fff;font-weight:600;font-size:13px;text-transform:capitalize;">${paymentMethod.replace(/_/g, ' ')}</span></td></tr>
+<tr><td style="padding:8px 0;border-top:1px solid rgba(255,255,255,0.04);"><span style="color:#94a3b8;font-size:13px;">Status</span></td><td style="text-align:right;border-top:1px solid rgba(255,255,255,0.04);"><span style="color:#f59e0b;font-weight:600;font-size:13px;text-transform:capitalize;">Pending</span></td></tr>
+</table>
+<div style="margin-top:20px;padding-top:20px;border-top:2px solid rgba(245,158,11,0.3);text-align:right;">
+<span style="font-size:13px;color:#94a3b8;">Total Paid</span>
+<span style="display:block;font-size:28px;font-weight:800;color:#f59e0b;">LKR ${totalLkr}</span>
+</div>
+</td></tr>
+
+${receiptUrl ? `
+<tr><td style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:16px;padding:32px;margin-top:24px;">
+<h3 style="margin:0 0 12px;font-size:14px;font-weight:600;color:#f59e0b;text-transform:uppercase;letter-spacing:1px;">Payment Receipt</h3>
+<div style="border-radius:12px;overflow:hidden;border:1px solid rgba(255,255,255,0.06);">
+<img src="${receiptUrl}" alt="Receipt" style="width:100%;display:block;max-width:536px;" />
+</div>
+</td></tr>` : ''}
+
+<tr><td align="center" style="padding:32px 0 0;">
+<p style="margin:0 0 4px;font-size:12px;color:#64748b;">HASA GOLD STORE — Premium Gaming Top-Ups</p>
+<p style="margin:0;font-size:12px;color:#64748b;">Need help? <a href="mailto:support@hasagold.store" style="color:#f59e0b;text-decoration:none;">support@hasagold.store</a></p>
+</td></tr>
+
+</table>
+</td></tr>
+</table>
+</body>
+</html>`;
+
+  const text = `
+HASA GOLD STORE — Order Confirmation
+
+Order #: ${orderNumber}
+Game: ${gameName}
+Package: ${packageLabel}
+Player ID: ${playerId}
+Total: LKR ${totalLkr}
+Payment: ${paymentMethod}
+Status: Pending
+
+Thank you for your purchase!
+Need help? Contact support@hasagold.store
+`.trim();
+
+  return { subject, html, text };
+}
+
+export async function sendOrderConfirmationEmail(
+  to: string,
+  params: Parameters<typeof generateOrderConfirmationEmail>[0],
+): Promise<{ success: boolean; error?: string }> {
+  const template = generateOrderConfirmationEmail(params);
+  return sendEmail(to, template);
+}
