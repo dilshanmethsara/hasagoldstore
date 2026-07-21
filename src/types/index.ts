@@ -97,6 +97,24 @@ export type PaymentMethod =
   | "frimi"
   | "bank_transfer";
 
+/** DB-backed payment method (from `payment_methods` table). */
+export interface PaymentMethodConfig {
+  id: string;
+  slug: string;
+  label: string;
+  description: string | null;
+  icon_url: string | null;
+  instructions: string | null;
+  min_amount: number | null;
+  max_amount: number | null;
+  fee_percent: number;
+  fee_fixed: number;
+  sort_order: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface OrderTimelineEntry {
   at: ISODateString;
   label: string;

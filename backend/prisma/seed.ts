@@ -268,6 +268,21 @@ async function main() {
 
   console.log('✅ System settings created');
 
+  // Create default payment methods
+  const defaultMethods = [
+    { slug: 'card', label: 'Credit / Debit Card', description: 'Secure card payments', sortOrder: 1 },
+    { slug: 'wallet', label: 'Wallet Balance', description: 'Pay using your HASA wallet', sortOrder: 2 },
+    { slug: 'ez_cash', label: 'eZ Cash', description: 'Instant mobile payments', sortOrder: 3 },
+    { slug: 'frimi', label: 'Frimi', description: 'Pay via Frimi app', sortOrder: 4 },
+    { slug: 'bank_transfer', label: 'Bank Transfer', description: 'Direct bank deposit', sortOrder: 5 },
+  ];
+
+  for (const m of defaultMethods) {
+    await prisma.paymentMethod.upsert({ where: { slug: m.slug }, update: {}, create: m });
+  }
+
+  console.log('✅ Payment methods created');
+
   console.log('🎉 Database seed completed successfully!');
 }
 

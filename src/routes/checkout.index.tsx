@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate, Navigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { CreditCard, Wallet, Smartphone, ShieldCheck, ArrowLeft, Lock, Building2 } from "lucide-react";
+import { CreditCard, Wallet, Smartphone, ShieldCheck, ArrowLeft, Lock, Building2, Banknote } from "lucide-react";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,9 @@ import { lkr } from "@/lib/format";
 import { useGame, usePackages, useCreateOrder, useWallet } from "@/lib/hooks/db";
 import { gameArt } from "@/lib/game-art";
 import { useAuth } from "@/lib/use-auth";
+import { useQuery } from "@tanstack/react-query";
+import { paymentMethodService } from "@/services/paymentMethodService";
+import type { PaymentMethodConfig } from "@/types";
 
 type Search = { game?: string; pkg?: string; pid?: string; sid?: string; promo?: string };
 
@@ -36,8 +39,18 @@ function CheckoutPage() {
   const pkg = useMemo(() => packages.find((p) => p.id === search.pkg) ?? packages[0], [packages, search.pkg]);
   const loading = gameLoading || (!!game && pkgsLoading);
   const art = gameArt(search.game ?? "");
-  const [method, setMethod] = useState<"card" | "wallet" | "ez_cash" | "frimi" | "bank_transfer">("card");
+  const [method, setMethod] = useState("card");
   const [promoDiscount, setPromoDiscount] = useState(0);
+
+  const { data: methods = [] } = useQuery({
+    queryKey: ["payment-methods"],
+    queryFn: () => paymentMethodService.listActive(),
+  });
+
+  useEffect(() => {
+    if (methods.length > 0 && methods.some(m => m.slug === method)) return;
+    if (methods.length > 0) setMethod(methods[0].slug);
+  }, [methods]);
 
   useEffect(() => {
     (async () => {
@@ -79,12 +92,7 @@ function CheckoutPage() {
   const subtotal = Number(pkg.price_lkr);
   const total = Math.max(0, subtotal - promoDiscount);
 
-  const METHODS = [
-    { id: "card" as const, label: "Credit / Debit Card", desc: "Visa, Mastercard, Amex", icon: CreditCard },
-    { id: "wallet" as const, label: "HASA Wallet", desc: `Balance: ${lkr(wallet?.balance ?? 0)}`, icon: Wallet, disabled: (wallet?.balance ?? 0) < total },
-    { id: "ez_cash" as const, label: "eZ Cash / mCash", desc: "Dialog / Mobitel mobile wallets", icon: Smartphone },
-    { id: "frimi" as const, label: "FriMi", desc: "Instant bank transfer", icon: Building2 },
-  ];
+  const ICON_MAP: Record<string, typeof Banknote> = { card: CreditCard, wallet: Wallet, ez_cash: Smartphone, frimi: Building2, bank_transfer: Banknote };
 
   const placeOrder = async () => {
     if (!user) { navigate({ to: "/auth/login", search: { redirect: window.location.pathname + window.location.search } as never }); return; }
@@ -135,12 +143,14 @@ function CheckoutPage() {
             <div className="glass-card rounded-3xl p-6">
               <h2 className="font-display text-lg font-bold text-foreground">Payment Method</h2>
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                {METHODS.map((m) => {
-                  const active = method === m.id;
+                {methods.map((m) => {
+                  const active = method === m.slug;
+                  const Icon = ICON_MAP[m.slug] ?? Banknote;
+                  const disabled = m.slug === "wallet" && (wallet?.balance ?? 0) < total;
                   return (
                     <button
-                      key={m.id} disabled={m.disabled}
-                      onClick={() => setMethod(m.id)}
+                      key={m.id} disabled={disabled}
+                      onClick={() => setMethod(m.slug)}
                       className={cn(
                         "flex items-center gap-3 rounded-2xl border p-4 text-left transition-all disabled:opacity-40",
                         active
@@ -149,11 +159,11 @@ function CheckoutPage() {
                       )}
                     >
                       <div className={cn("grid h-11 w-11 place-items-center rounded-xl", active ? "bg-[var(--gradient-primary)] text-primary-foreground" : "bg-white/5 text-muted-foreground")}>
-                        <m.icon className="h-5 w-5" />
+                        <Icon className="h-5 w-5" />
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="font-semibold text-foreground">{m.label}</p>
-                        <p className="text-xs text-muted-foreground">{m.desc}</p>
+                        <p className="text-xs text-muted-foreground">{m.description ?? m.slug}</p>
                       </div>
                     </button>
                   );

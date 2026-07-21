@@ -22,6 +22,7 @@ import { blogRoutes } from './routes/blog';
 import { announcementRoutes } from './routes/announcements';
 import { promoRoutes } from './routes/promo';
 import { walletRoutes } from './routes/wallet';
+import { paymentMethodRoutes } from './routes/paymentMethods';
 import { settingsService } from './services/settingsService';
 
 export async function createApp(): Promise<Express> {
@@ -84,6 +85,7 @@ export async function createApp(): Promise<Express> {
   app.use('/announcements', announcementRoutes);
   app.use('/promo-codes', promoRoutes);
   app.use('/wallet', walletRoutes);
+  app.use('/payment-methods', paymentMethodRoutes);
 
   // Error handling
   app.use(notFoundHandler);

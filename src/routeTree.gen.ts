@@ -40,6 +40,7 @@ import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authentic
 import { Route as AuthenticatedAdminGamesRouteImport } from './routes/_authenticated.admin.games'
 import { Route as AuthenticatedAdminOrdersRouteImport } from './routes/_authenticated.admin.orders'
 import { Route as AuthenticatedAdminPackagesRouteImport } from './routes/_authenticated.admin.packages'
+import { Route as AuthenticatedAdminPaymentMethodsRouteImport } from './routes/_authenticated.admin.payment-methods'
 import { Route as AuthenticatedAdminRevenueRouteImport } from './routes/_authenticated.admin.revenue'
 import { Route as AuthenticatedAdminSettingsRouteImport } from './routes/_authenticated.admin.settings'
 import { Route as AuthenticatedAdminTicketsRouteImport } from './routes/_authenticated.admin.tickets'
@@ -210,6 +211,12 @@ const AuthenticatedAdminPackagesRoute =
     path: '/packages',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminPaymentMethodsRoute =
+  AuthenticatedAdminPaymentMethodsRouteImport.update({
+    id: '/payment-methods',
+    path: '/payment-methods',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminRevenueRoute =
   AuthenticatedAdminRevenueRouteImport.update({
     id: '/revenue',
@@ -318,6 +325,7 @@ export interface FileRoutesByFullPath {
   '/admin/games': typeof AuthenticatedAdminGamesRoute
   '/admin/orders': typeof AuthenticatedAdminOrdersRoute
   '/admin/packages': typeof AuthenticatedAdminPackagesRoute
+  '/admin/payment-methods': typeof AuthenticatedAdminPaymentMethodsRoute
   '/admin/revenue': typeof AuthenticatedAdminRevenueRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/admin/tickets': typeof AuthenticatedAdminTicketsRoute
@@ -361,6 +369,7 @@ export interface FileRoutesByTo {
   '/admin/games': typeof AuthenticatedAdminGamesRoute
   '/admin/orders': typeof AuthenticatedAdminOrdersRoute
   '/admin/packages': typeof AuthenticatedAdminPackagesRoute
+  '/admin/payment-methods': typeof AuthenticatedAdminPaymentMethodsRoute
   '/admin/revenue': typeof AuthenticatedAdminRevenueRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/admin/tickets': typeof AuthenticatedAdminTicketsRoute
@@ -408,6 +417,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/games': typeof AuthenticatedAdminGamesRoute
   '/_authenticated/admin/orders': typeof AuthenticatedAdminOrdersRoute
   '/_authenticated/admin/packages': typeof AuthenticatedAdminPackagesRoute
+  '/_authenticated/admin/payment-methods': typeof AuthenticatedAdminPaymentMethodsRoute
   '/_authenticated/admin/revenue': typeof AuthenticatedAdminRevenueRoute
   '/_authenticated/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/_authenticated/admin/tickets': typeof AuthenticatedAdminTicketsRoute
@@ -455,6 +465,7 @@ export interface FileRouteTypes {
     | '/admin/games'
     | '/admin/orders'
     | '/admin/packages'
+    | '/admin/payment-methods'
     | '/admin/revenue'
     | '/admin/settings'
     | '/admin/tickets'
@@ -498,6 +509,7 @@ export interface FileRouteTypes {
     | '/admin/games'
     | '/admin/orders'
     | '/admin/packages'
+    | '/admin/payment-methods'
     | '/admin/revenue'
     | '/admin/settings'
     | '/admin/tickets'
@@ -544,6 +556,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/games'
     | '/_authenticated/admin/orders'
     | '/_authenticated/admin/packages'
+    | '/_authenticated/admin/payment-methods'
     | '/_authenticated/admin/revenue'
     | '/_authenticated/admin/settings'
     | '/_authenticated/admin/tickets'
@@ -807,6 +820,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminPackagesRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/payment-methods': {
+      id: '/_authenticated/admin/payment-methods'
+      path: '/payment-methods'
+      fullPath: '/admin/payment-methods'
+      preLoaderRoute: typeof AuthenticatedAdminPaymentMethodsRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/revenue': {
       id: '/_authenticated/admin/revenue'
       path: '/revenue'
@@ -905,6 +925,7 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminGamesRoute: typeof AuthenticatedAdminGamesRoute
   AuthenticatedAdminOrdersRoute: typeof AuthenticatedAdminOrdersRoute
   AuthenticatedAdminPackagesRoute: typeof AuthenticatedAdminPackagesRoute
+  AuthenticatedAdminPaymentMethodsRoute: typeof AuthenticatedAdminPaymentMethodsRoute
   AuthenticatedAdminRevenueRoute: typeof AuthenticatedAdminRevenueRoute
   AuthenticatedAdminSettingsRoute: typeof AuthenticatedAdminSettingsRoute
   AuthenticatedAdminTicketsRoute: typeof AuthenticatedAdminTicketsRoute
@@ -916,6 +937,7 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminGamesRoute: AuthenticatedAdminGamesRoute,
   AuthenticatedAdminOrdersRoute: AuthenticatedAdminOrdersRoute,
   AuthenticatedAdminPackagesRoute: AuthenticatedAdminPackagesRoute,
+  AuthenticatedAdminPaymentMethodsRoute: AuthenticatedAdminPaymentMethodsRoute,
   AuthenticatedAdminRevenueRoute: AuthenticatedAdminRevenueRoute,
   AuthenticatedAdminSettingsRoute: AuthenticatedAdminSettingsRoute,
   AuthenticatedAdminTicketsRoute: AuthenticatedAdminTicketsRoute,

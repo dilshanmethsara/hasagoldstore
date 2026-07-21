@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { adminService } from '../services/adminService';
+import { paymentMethodService } from '../services/paymentMethodService';
 import { settingsService } from '../services/settingsService';
 import { ApiError } from '../types';
 import { AccountStatus, Role } from '@prisma/client';
@@ -256,6 +257,55 @@ router.patch('/settings', requireAuth, requireRole(Role.ADMIN), async (req, res)
     } else {
       res.status(500).json({ code: 'INTERNAL_ERROR', message: 'Failed to update settings' });
     }
+  }
+});
+
+// ── Payment Methods (admin only) ──────────────────────────────────────────
+
+router.get('/payment-methods', requireAuth, requireRole(Role.ADMIN), async (_req, res) => {
+  try {
+    const methods = await paymentMethodService.list();
+    res.json(methods);
+  } catch (error) {
+    res.status(500).json({ code: 'INTERNAL_ERROR', message: 'Failed to fetch payment methods' });
+  }
+});
+
+router.post('/payment-methods', requireAuth, requireRole(Role.ADMIN), async (req, res) => {
+  try {
+    const method = await paymentMethodService.create(req.body);
+    res.status(201).json(method);
+  } catch (error) {
+    if (error instanceof ApiError) throw error;
+    res.status(400).json({ code: 'VALIDATION_ERROR', message: (error as Error).message });
+  }
+});
+
+router.patch('/payment-methods/:id', requireAuth, requireRole(Role.ADMIN), async (req, res) => {
+  try {
+    const method = await paymentMethodService.update(req.params.id, req.body);
+    res.json(method);
+  } catch (error) {
+    res.status(400).json({ code: 'VALIDATION_ERROR', message: (error as Error).message });
+  }
+});
+
+router.delete('/payment-methods/:id', requireAuth, requireRole(Role.ADMIN), async (req, res) => {
+  try {
+    await paymentMethodService.delete(req.params.id);
+    res.status(204).end();
+  } catch (error) {
+    res.status(400).json({ code: 'VALIDATION_ERROR', message: (error as Error).message });
+  }
+});
+
+router.patch('/payment-methods/:id/toggle', requireAuth, requireRole(Role.ADMIN), async (req, res) => {
+  try {
+    const { isActive } = req.body;
+    const method = await paymentMethodService.toggleActive(req.params.id, isActive);
+    res.json(method);
+  } catch (error) {
+    res.status(400).json({ code: 'VALIDATION_ERROR', message: (error as Error).message });
   }
 });
 

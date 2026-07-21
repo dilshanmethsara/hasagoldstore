@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, TrendingUp, ShoppingBag, Users, Gamepad2, Package, LifeBuoy, ArrowLeft, Settings } from "lucide-react";
+import { LayoutDashboard, TrendingUp, ShoppingBag, Users, Gamepad2, Package, Banknote, LifeBuoy, ArrowLeft, Settings } from "lucide-react";
 import { Logo } from "@/components/brand/Logo";
 import { cn } from "@/lib/utils";
 
@@ -11,6 +11,7 @@ const items: Item[] = [
   { to: "/admin/users", label: "Users", icon: Users },
   { to: "/admin/games", label: "Games", icon: Gamepad2 },
   { to: "/admin/packages", label: "Packages", icon: Package },
+  { to: "/admin/payment-methods", label: "Payments", icon: Banknote },
   { to: "/admin/tickets", label: "Support", icon: LifeBuoy },
   { to: "/admin/settings", label: "System", icon: Settings },
 ];
