@@ -8,7 +8,12 @@ export const Route = createFileRoute("/_authenticated/admin/games")({
   component: GamesPage,
 });
 
-type GameForm = Partial<Game> & { name: string; slug: string };
+type GameForm = Partial<Game> & {
+  name: string;
+  slug: string;
+  card_image_file?: File | null;
+  hero_image_file?: File | null;
+};
 
 function GamesPage() {
   const { data: games, isLoading } = useGames();
@@ -75,7 +80,25 @@ function GamesPage() {
         <GameFormDialog
           initial={editing}
           onClose={() => setEditing(null)}
-          onSave={(v) => upsert.mutate(v, { onSuccess: () => setEditing(null) })}
+          onSave={async (v) => {
+            if (v.card_image_file || v.hero_image_file) {
+              const formData = new FormData();
+              if (v.card_image_file) formData.append('card_image', v.card_image_file);
+              if (v.hero_image_file) formData.append('hero_image', v.hero_image_file);
+              try {
+                const uploadRes = await fetch('http://localhost:3001/admin/games/upload', {
+                  method: 'POST',
+                  credentials: 'include',
+                  body: formData,
+                });
+                const uploadData = await uploadRes.json();
+                v = { ...v, ...uploadData };
+              } catch (error) {
+                console.error('Upload failed:', error);
+              }
+            }
+            upsert.mutate(v, { onSuccess: () => setEditing(null) });
+          }}
           saving={upsert.isPending}
         />
       )}
@@ -88,7 +111,7 @@ function GameFormDialog({ initial, onClose, onSave, saving }: { initial: GameFor
   const isNew = !initial.id;
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4 backdrop-blur-sm" onClick={onClose}>
-      <div onClick={(e) => e.stopPropagation()} className="w-full max-w-lg rounded-3xl border border-white/10 bg-background p-6 shadow-2xl">
+      <div onClick={(e) => e.stopPropagation()} className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-3xl border border-white/10 bg-background p-6 shadow-2xl">
         <div className="flex items-center justify-between">
           <h2 className="font-display text-xl font-bold text-foreground">{isNew ? "Add game" : `Edit ${initial.name}`}</h2>
           <button onClick={onClose} className="grid h-8 w-8 place-items-center rounded-lg text-muted-foreground hover:bg-white/5"><X className="h-4 w-4" /></button>
@@ -101,8 +124,8 @@ function GameFormDialog({ initial, onClose, onSave, saving }: { initial: GameFor
           <Field label="Slug (URL)"><input required value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-") })} className={inp} placeholder="free-fire" /></Field>
           <Field label="Publisher"><input value={form.publisher ?? ""} onChange={(e) => setForm({ ...form, publisher: e.target.value })} className={inp} /></Field>
           <Field label="Tagline"><input value={form.tagline ?? ""} onChange={(e) => setForm({ ...form, tagline: e.target.value })} className={inp} /></Field>
-          <Field label="Card image URL"><input value={form.card_image ?? ""} onChange={(e) => setForm({ ...form, card_image: e.target.value })} className={inp} placeholder="https://…" /></Field>
-          <Field label="Hero image URL"><input value={form.hero_image ?? ""} onChange={(e) => setForm({ ...form, hero_image: e.target.value })} className={inp} placeholder="https://…" /></Field>
+          <Field label="Card image"><input type="file" accept="image/*" onChange={(e) => setForm({ ...form, card_image_file: e.target.files?.[0] || null })} className={inp} />{form.card_image && <img src={form.card_image} className="mt-2 h-20 w-auto rounded-lg" />}</Field>
+          <Field label="Hero image"><input type="file" accept="image/*" onChange={(e) => setForm({ ...form, hero_image_file: e.target.files?.[0] || null })} className={inp} />{form.hero_image && <img src={form.hero_image} className="mt-2 h-20 w-auto rounded-lg" />}</Field>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Sort order"><input type="number" value={form.sort_order ?? 0} onChange={(e) => setForm({ ...form, sort_order: Number(e.target.value) })} className={inp} /></Field>
             <Field label="Popularity"><input type="number" value={form.popularity ?? 0} onChange={(e) => setForm({ ...form, popularity: Number(e.target.value) })} className={inp} /></Field>

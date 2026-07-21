@@ -4,8 +4,57 @@ import { settingsService } from '../services/settingsService';
 import { ApiError } from '../types';
 import { AccountStatus, Role } from '@prisma/client';
 import { requireAuth, requireRole } from '../middleware/auth';
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
 
 const router = Router();
+
+// Configure multer for file uploads
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const uploadDir = path.join(__dirname, '../../../public/uploads');
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    const ext = path.extname(file.originalname);
+    cb(null, uniqueSuffix + ext);
+  }
+});
+
+const upload = multer({ storage });
+
+// Upload game images (admin only)
+router.post('/games/upload', requireAuth, requireRole(Role.ADMIN), upload.fields([
+  { name: 'card_image', maxCount: 1 },
+  { name: 'hero_image', maxCount: 1 }
+]), async (req, res) => {
+  try {
+    const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+    const result: { card_image?: string; hero_image?: string } = {};
+
+    const baseUrl = `${req.protocol}://${req.get('host')}`;
+
+    if (files.card_image?.[0]) {
+      result.card_image = `${baseUrl}/uploads/${files.card_image[0].filename}`;
+    }
+    if (files.hero_image?.[0]) {
+      result.hero_image = `${baseUrl}/uploads/${files.hero_image[0].filename}`;
+    }
+
+    res.json(result);
+  } catch (error) {
+    if (error instanceof ApiError) {
+      res.status(400).json({ code: error.code, message: error.message });
+    } else {
+      res.status(500).json({ code: 'INTERNAL_ERROR', message: 'Failed to upload images' });
+    }
+  }
+});
 
 // Get dashboard stats (admin only)
 router.get('/stats', requireAuth, requireRole(Role.ADMIN, Role.MODERATOR), async (_req, res) => {
@@ -87,6 +136,20 @@ router.get('/games', requireAuth, requireRole(Role.ADMIN, Role.MODERATOR), async
   }
 });
 
+// Create game (admin only)
+router.post('/games', requireAuth, requireRole(Role.ADMIN), async (req, res) => {
+  try {
+    const game = await adminService.upsertGame(req.body);
+    res.status(201).json(game);
+  } catch (error) {
+    if (error instanceof ApiError) {
+      res.status(400).json({ code: error.code, message: error.message });
+    } else {
+      res.status(500).json({ code: 'INTERNAL_ERROR', message: 'Failed to create game' });
+    }
+  }
+});
+
 // List all packages (admin only)
 router.get('/packages', requireAuth, requireRole(Role.ADMIN, Role.MODERATOR), async (_req, res) => {
   try {
@@ -97,6 +160,20 @@ router.get('/packages', requireAuth, requireRole(Role.ADMIN, Role.MODERATOR), as
       res.status(400).json({ code: error.code, message: error.message });
     } else {
       res.status(500).json({ code: 'INTERNAL_ERROR', message: 'Failed to fetch packages' });
+    }
+  }
+});
+
+// Create package (admin only)
+router.post('/packages', requireAuth, requireRole(Role.ADMIN), async (req, res) => {
+  try {
+    const pkg = await adminService.upsertPackage(req.body);
+    res.status(201).json(pkg);
+  } catch (error) {
+    if (error instanceof ApiError) {
+      res.status(400).json({ code: error.code, message: error.message });
+    } else {
+      res.status(500).json({ code: 'INTERNAL_ERROR', message: 'Failed to create package' });
     }
   }
 });

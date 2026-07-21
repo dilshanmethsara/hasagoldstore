@@ -44,6 +44,9 @@ export async function createApp(): Promise<Express> {
   app.use(generalRateLimit);
   app.use(responseTransform);
 
+  // Serve uploaded files
+  app.use('/uploads', express.static('public/uploads'));
+
   // Health check
   app.get('/health', (_req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });

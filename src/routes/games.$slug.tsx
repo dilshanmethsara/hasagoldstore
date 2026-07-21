@@ -35,6 +35,10 @@ function GamePage() {
   const [promo, setPromo] = useState("");
   const [promoApplied, setPromoApplied] = useState<{ code: string; discount: number } | null>(null);
 
+  // Use database images with fallback to mock art
+  const heroImage = game?.hero_image ?? art.image;
+  const cardImage = game?.card_image ?? art.image;
+
   useEffect(() => {
     if (packages.length && !packageId) {
       setPackageId(packages.find((p) => p.badge === "POPULAR")?.id ?? packages[0].id);
@@ -68,12 +72,12 @@ function GamePage() {
       <SiteHeader />
       <section className="relative overflow-hidden">
         <div className="absolute inset-0">
-          <img src={art.image} alt="" className="h-full w-full object-cover opacity-30" />
+          <img src={heroImage} alt="" className="h-full w-full object-cover opacity-30" />
           <div className="absolute inset-0 bg-gradient-to-b from-background/40 via-background/80 to-background" />
         </div>
         <div className="relative mx-auto flex max-w-7xl flex-col gap-6 px-4 py-12 sm:px-6 lg:flex-row lg:items-end lg:px-8 lg:py-20">
           <div className="relative h-28 w-28 shrink-0 overflow-hidden rounded-3xl border border-white/10 shadow-2xl shadow-primary/30 sm:h-36 sm:w-36">
-            <img src={art.image} alt={game.name} className="h-full w-full object-cover" />
+            <img src={cardImage} alt={game.name} className="h-full w-full object-cover" />
           </div>
           <div className="flex-1">
             <div className="mb-3 flex flex-wrap gap-2">
@@ -242,10 +246,11 @@ function GamePage() {
         <h3 className="mb-5 font-display text-2xl font-bold text-foreground">Other Games</h3>
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           {allGames.filter(g => g.slug !== game.slug).map(g => {
-            const a = gameArt(g.slug);
+            const art = gameArt(g.slug);
+            const imageUrl = g.card_image ?? art.image;
             return (
               <Link key={g.slug} to="/games/$slug" params={{ slug: g.slug }} className="group flex items-center gap-3 rounded-2xl border border-white/5 bg-white/[0.03] p-3 transition-all hover:border-primary/30">
-                <img src={a.image} alt="" className="h-12 w-12 rounded-xl object-cover" />
+                <img src={imageUrl} alt="" className="h-12 w-12 rounded-xl object-cover" />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-semibold text-foreground">{g.name}</p>
                   <p className="truncate text-xs text-muted-foreground">{g.tagline}</p>

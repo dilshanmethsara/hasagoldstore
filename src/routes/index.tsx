@@ -2,12 +2,13 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Zap, ShieldCheck, Star, ArrowRight, Sparkles, Wallet, Headphones, Check, ChevronDown, Tag, Flame, ChevronRight } from "lucide-react";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
-import { GameCard } from "@/components/site/GameCard";
 import { Button } from "@/components/ui/button";
 import { GAMES } from "@/lib/games";
 import heroCharImg from "@/assets/hero-characters.png";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
+import { useGames } from "@/lib/hooks/db";
+import { gameArt } from "@/lib/game-art";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -378,6 +379,7 @@ function Stats() {
 }
 
 function PopularGames() {
+  const { data: games = [] } = useGames();
   return (
     <section id="games" className="mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-24 lg:px-8">
       <div className="mb-10 text-center">
@@ -390,7 +392,45 @@ function PopularGames() {
       </div>
       
       <div className="grid grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-4">
-        {GAMES.map((g) => <GameCard key={g.slug} game={g} />)}
+        {games.filter(g => g.is_live).map((g) => {
+          const art = gameArt(g.slug);
+          const img = g.card_image ?? art.image;
+          return (
+            <Link
+              key={g.id}
+              to="/games/$slug"
+              params={{ slug: g.slug }}
+              className="group relative block overflow-hidden rounded-3xl border border-border/40 bg-card transition-all duration-500 hover:-translate-y-2 hover:border-primary/40 [perspective:1000px]"
+              style={{ boxShadow: "0 10px 30px -15px rgba(0,0,0,0.3)" }}
+            >
+              <div className={cn(
+                "absolute inset-0 -z-10 rounded-3xl opacity-0 transition-opacity duration-500 group-hover:opacity-100 blur-xl",
+                "bg-gradient-to-tr", art.accent
+              )} />
+              <div className="relative aspect-[4/5] overflow-hidden transition-transform duration-500 ease-out [transform-style:preserve-3d] group-hover:[transform:rotateX(4deg)_rotateY(-4deg)]">
+                <img src={img} alt={g.name} loading="lazy" className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-110" />
+                <div className="absolute inset-0 bg-gradient-to-t via-background/45 to-transparent from-background/95" />
+                <div className="absolute left-4 top-4 flex gap-1.5 [transform:translateZ(20px)]">
+                  <span className="inline-flex items-center gap-1 rounded-lg bg-black/60 px-2.5 py-1 text-[10px] font-semibold text-white/95 backdrop-blur-md border border-white/10 shadow-lg">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    Instant
+                  </span>
+                </div>
+                <div className="absolute right-4 top-4 grid h-9 w-9 place-items-center rounded-xl bg-primary text-primary-foreground opacity-0 shadow-lg shadow-primary/30 transition-all duration-500 scale-75 group-hover:opacity-100 group-hover:scale-100 [transform:translateZ(20px)]">
+                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                </div>
+                <div className="absolute inset-x-0 bottom-0 p-5 [transform:translateZ(30px)]">
+                  <h3 className="font-display text-lg font-bold uppercase tracking-wide text-foreground leading-tight group-hover:text-gradient">
+                    {g.name}
+                  </h3>
+                  <p className="mt-1 text-xs font-medium text-muted-foreground group-hover:text-muted-foreground/80 transition-colors">
+                    {g.tagline ?? "Top Up"}
+                  </p>
+                </div>
+              </div>
+            </Link>
+          );
+        })}
       </div>
     </section>
   );

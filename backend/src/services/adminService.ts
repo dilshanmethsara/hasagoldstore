@@ -134,16 +134,38 @@ export class AdminService {
     isFeatured?: boolean;
     sortOrder?: number;
     isLive?: boolean;
+    // snake_case from frontend
+    is_live?: boolean;
+    is_featured?: boolean;
+    card_image?: string;
+    hero_image?: string;
+    sort_order?: number;
+    popularity?: number;
   }) {
-    if (data.id) {
+    // Map snake_case to camelCase, excluding snake_case keys entirely
+    const mappedData = {
+      id: data.id,
+      name: data.name,
+      slug: data.slug,
+      tagline: data.tagline,
+      publisher: data.publisher,
+      imageUrl: data.imageUrl,
+      cardImage: data.card_image ?? data.cardImage,
+      heroImage: data.hero_image ?? data.heroImage,
+      isFeatured: data.is_featured ?? data.isFeatured,
+      sortOrder: data.sort_order ?? data.sortOrder,
+      isLive: data.is_live ?? data.isLive,
+    };
+
+    if (mappedData.id) {
       return await prisma.game.update({
-        where: { id: data.id },
-        data,
+        where: { id: mappedData.id },
+        data: mappedData,
       });
     }
 
     return await prisma.game.create({
-      data,
+      data: mappedData,
     });
   }
 

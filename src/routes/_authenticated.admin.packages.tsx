@@ -114,7 +114,7 @@ function PackageFormDialog({ initial, games, onClose, onSave, saving }: { initia
   const isNew = !initial.id;
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4 backdrop-blur-sm" onClick={onClose}>
-      <div onClick={(e) => e.stopPropagation()} className="w-full max-w-lg rounded-3xl border border-white/10 bg-background p-6 shadow-2xl">
+      <div onClick={(e) => e.stopPropagation()} className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-3xl border border-white/10 bg-background p-6 shadow-2xl">
         <div className="flex items-center justify-between">
           <h2 className="font-display text-xl font-bold text-foreground">{isNew ? "Add package" : `Edit ${initial.label}`}</h2>
           <button onClick={onClose} className="grid h-8 w-8 place-items-center rounded-lg text-muted-foreground hover:bg-white/5"><X className="h-4 w-4" /></button>

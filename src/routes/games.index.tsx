@@ -39,10 +39,11 @@ function GamesIndex() {
           <div className="grid grid-cols-2 gap-4 sm:gap-5 lg:grid-cols-4">
             {filtered.map((g) => {
               const art = gameArt(g.slug);
+              const image = g.card_image ?? art.image;
               return (
                 <Link key={g.id} to="/games/$slug" params={{ slug: g.slug }} className="group relative block overflow-hidden rounded-3xl border border-white/5 bg-card transition-all hover:-translate-y-1 hover:border-primary/40 hover:shadow-[0_20px_60px_-20px_var(--primary)]">
                   <div className="relative aspect-[4/5] overflow-hidden">
-                    <img src={art.image} alt={g.name} loading="lazy" className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                    <img src={image} alt={g.name} loading="lazy" className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110" />
                     <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent" />
                     <div className="absolute inset-x-0 bottom-0 p-4 sm:p-5">
                       <h3 className="font-display text-lg font-bold uppercase tracking-wide text-foreground">{g.name}</h3>
