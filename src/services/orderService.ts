@@ -19,9 +19,11 @@ export const orderService = {
   uploadReceipt: async (file: File): Promise<string> => {
     const fd = new FormData();
     fd.append("receipt", file);
+    const token = typeof window !== "undefined" ? localStorage.getItem("auth_token") : null;
     const res = await fetch(`${BASE_URL}/orders/upload-receipt`, {
       method: "POST",
       credentials: "include",
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
       body: fd,
     });
     if (!res.ok) throw new Error("Upload failed");
