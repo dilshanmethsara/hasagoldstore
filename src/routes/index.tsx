@@ -1,10 +1,10 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { Zap, ShieldCheck, Star, ArrowRight, Sparkles, Wallet, Headphones, Check, ChevronDown, Tag, Flame, ChevronRight } from "lucide-react";
+import { Zap, ShieldCheck, Star, ArrowRight, Sparkles, Wallet, Headphones, ChevronDown, Tag, Flame, ChevronRight } from "lucide-react";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { Button } from "@/components/ui/button";
 import { GAMES } from "@/lib/games";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { useGames } from "@/lib/hooks/db";
 import { gameArt } from "@/lib/game-art";
@@ -43,218 +43,317 @@ function HomePage() {
 }
 
 function Hero() {
-  const navigate = useNavigate();
-  const [selectedGame, setSelectedGame] = useState("free-fire");
-  const [playerId, setPlayerId] = useState("");
-  const [serverId, setServerId] = useState("");
-  const [selectedPkgId, setSelectedPkgId] = useState("");
+  const { data: games = [] } = useGames();
+  const [activeGame, setActiveGame] = useState(0);
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  const heroRef = useRef<HTMLElement>(null);
 
-  const currentGame = GAMES.find(g => g.slug === selectedGame) || GAMES[0];
-  const packages = currentGame.packages;
+  const displayGames = (games.filter((g) => g.is_live).slice(0, 4).length > 0
+    ? games.filter((g) => g.is_live).slice(0, 4)
+    : GAMES.slice(0, 4)) as any[];
 
-  // Reset package selection when game changes
   useEffect(() => {
-    if (packages.length > 0) {
-      // Auto-select the popular package or the first one
-      const popular = packages.find(p => p.popular);
-      setSelectedPkgId(popular ? popular.id : packages[0].id);
-    } else {
-      setSelectedPkgId("");
-    }
-  }, [selectedGame]);
+    const t = setInterval(() => setActiveGame((p) => (p + 1) % Math.max(displayGames.length, 1)), 3500);
+    return () => clearInterval(t);
+  }, [displayGames.length]);
 
-  const selectedPkg = packages.find(p => p.id === selectedPkgId);
-
-  const canCheckout = playerId.trim().length > 2 && 
-    (selectedGame !== "mobile-legends" || serverId.trim().length > 1) && 
-    !!selectedPkgId;
-
-  const handleCheckout = () => {
-    if (!canCheckout) return;
-    navigate({
-      to: "/checkout",
-      search: {
-        game: selectedGame,
-        pkg: selectedPkgId,
-        pid: playerId,
-        sid: selectedGame === "mobile-legends" ? serverId : "",
-        promo: "",
-      }
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!heroRef.current) return;
+    const rect = heroRef.current.getBoundingClientRect();
+    setMousePos({
+      x: ((e.clientX - rect.left) / rect.width - 0.5) * 2,
+      y: ((e.clientY - rect.top) / rect.height - 0.5) * 2,
     });
   };
 
+  const current = displayGames[activeGame];
+  const art = current ? gameArt(current.slug) : gameArt("free-fire");
+  const heroImg = current
+    ? (current.hero_image || current.card_image || art.image)
+    : art.image;
+
   return (
-    <section className="relative pt-4 pb-12 sm:pb-16 lg:pb-24 lg:pt-12">
-      {/* Decorative dot grid background */}
-      <div className="bg-grid absolute inset-0 opacity-20 pointer-events-none" />
+    <section
+      ref={heroRef}
+      onMouseMove={handleMouseMove}
+      className="relative flex min-h-[92vh] items-center overflow-hidden"
+    >
+      {/* Cinematic BG */}
+      <div className="absolute inset-0 -z-10">
+        <img
+          key={heroImg}
+          src={heroImg}
+          alt=""
+          className="h-full w-full object-cover object-center opacity-[0.18] scale-105 animate-fade-in"
+          style={{ animationDuration: "1.2s" }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-background via-background/90 to-background/40" />
+        <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-background/60" />
+        {/* Parallax orbs */}
+        <div
+          className="absolute -top-40 -left-40 h-[700px] w-[700px] rounded-full opacity-25"
+          style={{
+            background: "radial-gradient(circle, oklch(0.65 0.22 260 / 0.55), transparent 70%)",
+            filter: "blur(70px)",
+            transform: `translate(${mousePos.x * 18}px,${mousePos.y * 18}px)`,
+            transition: "transform 0.9s cubic-bezier(0.16,1,0.3,1)",
+          }}
+        />
+        <div
+          className="absolute top-1/3 right-[-10%] h-[500px] w-[500px] rounded-full opacity-20"
+          style={{
+            background: "radial-gradient(circle, oklch(0.75 0.18 290 / 0.6), transparent 70%)",
+            filter: "blur(60px)",
+            transform: `translate(${mousePos.x * -12}px,${mousePos.y * -12}px)`,
+            transition: "transform 1.1s cubic-bezier(0.16,1,0.3,1)",
+          }}
+        />
+        <div
+          className="absolute bottom-0 left-1/3 h-[400px] w-[400px] animate-float-delayed rounded-full opacity-15"
+          style={{ background: "radial-gradient(circle, oklch(0.7 0.2 200 / 0.5), transparent 70%)", filter: "blur(70px)" }}
+        />
+        <div className="bg-grid absolute inset-0 opacity-[0.07]" />
+        <div className="absolute top-1/3 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent animate-hero-beam" />
+        <div className="absolute top-2/3 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/15 to-transparent animate-hero-beam" style={{ animationDelay: "2s" }} />
+      </div>
 
-      <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 grid gap-12 lg:grid-cols-[1.1fr_0.9fr] lg:gap-8 items-center">
-        {/* Left Column: Heading and info */}
-        <div className="flex flex-col animate-fade-up relative z-10">
-          {/* Trust Badge */}
-          <div className="mb-5 inline-flex w-fit items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-[11px] font-semibold text-primary sm:mb-6 sm:px-4 sm:py-1.5 sm:text-xs">
-            <Zap className="h-3.5 w-3.5 fill-primary/20 animate-pulse" />
-            #1 Rated Instant Gaming Store
-          </div>
+      {/* Particles */}
+      <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+        {Array.from({ length: 14 }).map((_, i) => (
+          <div
+            key={i}
+            className="absolute rounded-full bg-primary/50"
+            style={{
+              width: i % 3 === 0 ? 3 : 2,
+              height: i % 3 === 0 ? 3 : 2,
+              left: `${8 + i * 7}%`,
+              top: `${25 + ((i * 41) % 55)}%`,
+              animation: `particle-float ${3 + (i % 3)}s ease-in-out ${i * 0.35}s infinite`,
+            }}
+          />
+        ))}
+      </div>
 
-          <h1 className="font-display text-[2.5rem] font-bold leading-[1.02] tracking-tight text-foreground sm:text-6xl lg:text-7xl">
-            Level Up Your Game.<br />
-            <span className="text-gradient">Instant Top-Up.</span>
-          </h1>
+      <div className="relative mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="grid items-center gap-12 lg:grid-cols-[1fr_480px] lg:gap-16">
 
-          <p className="mt-5 max-w-lg text-sm text-muted-foreground sm:text-lg leading-relaxed">
-            Get your diamonds, UC, or gold top-up credited in seconds. Trusted by{" "}
-            <span className="font-bold text-foreground underline decoration-primary decoration-2 underline-offset-4">500,000+</span> gamers for the best prices and 24/7 delivery.
-          </p>
-
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-            <a href="#games">
-              <Button variant="hero" size="xl" className="w-full sm:w-auto shadow-lg shadow-primary/25 hover:shadow-primary/45 transition-all">
-                <Zap className="h-4 w-4" /> Top Up Now
-              </Button>
-            </a>
-            <a href="#how-it-works">
-              <Button variant="outline" size="xl" className="w-full sm:w-auto hover:bg-muted/50">
-                How It Works <ArrowRight className="h-4 w-4" />
-              </Button>
-            </a>
-          </div>
-
-          {/* Core Trust Indicators */}
-          <div className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-4">
-            {[
-              { icon: Zap, title: "10-Sec Delivery", desc: "Instant Credit" },
-              { icon: ShieldCheck, title: "Secure Checkout", desc: "Encrypted Payments" },
-              { icon: Tag, title: "Cheapest Prices", desc: "Always Best Deals" },
-              { icon: Headphones, title: "24/7 Live Support", desc: "Instant Help" },
-            ].map((item, idx) => (
-              <div key={idx} className="glass-panel flex items-center gap-2.5 rounded-2xl p-3 hover:border-primary/20 transition-colors duration-300">
-                <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
-                  <item.icon className="h-4 w-4" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-[11px] font-bold text-foreground leading-tight">{item.title}</p>
-                  <p className="text-[9px] text-muted-foreground leading-tight mt-0.5">{item.desc}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Trust Score */}
-          <div className="mt-8 flex items-center gap-4 border-t border-border/40 pt-6">
-            <div className="flex -space-x-2.5">
-              {["bg-primary", "bg-fuchsia-500", "bg-emerald-500", "bg-amber-500"].map((bg, idx) => (
-                <div key={idx} className={cn("grid h-9 w-9 place-items-center rounded-full border-2 border-background text-[11px] font-bold text-white shadow-md", bg)}>
-                  {["A", "K", "D", "S"][idx]}
+          {/* ── LEFT: copy ── */}
+          <div className="flex flex-col">
+            <div className="animate-fade-up mb-6 inline-flex w-fit items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-4 py-1.5 text-xs font-bold text-primary backdrop-blur-sm" style={{ animationDelay: "0.1s" }}>
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
+              </span>
+              Live — #1 Instant Gaming Store in Sri Lanka
             </div>
+
+            <h1 className="animate-fade-up font-display text-5xl font-black leading-[1.0] tracking-tighter text-foreground sm:text-6xl lg:text-7xl xl:text-8xl" style={{ animationDelay: "0.2s" }}>
+              <span className="block">Level Up</span>
+              <span className="block">Your Game.</span>
+              <span className="block mt-1 animate-text-shimmer">Instant Top-Up.</span>
+            </h1>
+
+            <p className="animate-fade-up mt-6 max-w-lg text-base leading-relaxed text-muted-foreground sm:text-lg" style={{ animationDelay: "0.35s" }}>
+              Diamonds, UC, Gold — credited in{" "}
+              <span className="font-bold text-foreground">under 10 seconds</span>. Trusted by{" "}
+              <span className="font-bold text-foreground underline decoration-primary decoration-2 underline-offset-4">500,000+ gamers</span>{" "}
+              for the best prices in Sri Lanka.
+            </p>
+
+            <div className="animate-fade-up mt-8 flex flex-col gap-3 sm:flex-row" style={{ animationDelay: "0.45s" }}>
+              <a href="#games">
+                <Button variant="hero" size="xl" className="group relative w-full overflow-hidden sm:w-auto shadow-[0_0_40px_-8px_var(--primary)] hover:shadow-[0_0_60px_-4px_var(--primary)] transition-all duration-500">
+                  <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/10 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
+                  <Zap className="h-4 w-4 fill-primary-foreground/20" /> Top Up Now
+                </Button>
+              </a>
+              <a href="#how-it-works">
+                <Button variant="outline" size="xl" className="w-full sm:w-auto border-white/10 backdrop-blur-sm hover:border-primary/40 hover:bg-primary/5 transition-all duration-300">
+                  How It Works <ArrowRight className="h-4 w-4" />
+                </Button>
+              </a>
+            </div>
+
+            {/* Mini stats */}
+            <div className="animate-fade-up mt-10 flex flex-wrap gap-8" style={{ animationDelay: "0.55s" }}>
+              {[
+                { val: "10s", label: "Avg Delivery" },
+                { val: "99.9%", label: "Success Rate" },
+                { val: "500K+", label: "Happy Gamers" },
+                { val: "24/7", label: "Support" },
+              ].map(({ val, label }) => (
+                <div key={label} className="flex flex-col">
+                  <span className="font-display text-2xl font-black text-gradient">{val}</span>
+                  <span className="text-[10px] uppercase tracking-widest text-muted-foreground">{label}</span>
+                </div>
               ))}
             </div>
-            <div>
-              <div className="flex items-center gap-1.5">
-                <span className="text-sm font-bold text-foreground">4.9/5 Rating</span>
-                <div className="flex">{Array.from({ length: 5 }).map((_, i) => (<Star key={i} className="h-3 w-3 fill-amber-400 text-amber-400" />))}</div>
+
+            {/* Social proof */}
+            <div className="animate-fade-up mt-8 flex items-center gap-4 border-t border-white/5 pt-6" style={{ animationDelay: "0.65s" }}>
+              <div className="flex -space-x-3">
+                {(["bg-primary","bg-fuchsia-500","bg-emerald-500","bg-amber-500","bg-rose-500"] as const).map((bg, i) => (
+                  <div key={i} className={cn("grid h-9 w-9 place-items-center rounded-full border-2 border-background text-[11px] font-bold text-white shadow-lg", bg)}>
+                    {["A","K","D","S","R"][i]}
+                  </div>
+                ))}
               </div>
-              <p className="text-[11px] text-muted-foreground">based on 25,000+ verified customer reviews</p>
+              <div>
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: 5 }).map((_, i) => <Star key={i} className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />)}
+                  <span className="ml-1.5 text-sm font-bold text-foreground">4.9/5</span>
+                </div>
+                <p className="text-[11px] text-muted-foreground">25,000+ verified reviews</p>
+              </div>
             </div>
+          </div>
+
+          {/* ── RIGHT: 3-D showcase ── */}
+          <HeroGameShowcase
+            games={displayGames}
+            activeGame={activeGame}
+            setActiveGame={setActiveGame}
+            mousePos={mousePos}
+          />
         </div>
       </div>
-      {/* Right Column: Featured Game Showcase */}
-      <FeaturedGameShowcase />
-    </div>
+
+      {/* Bottom fade */}
+      <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-background to-transparent" />
     </section>
   );
 }
 
-function FeaturedGameShowcase() {
+function HeroGameShowcase({
+  games, activeGame, setActiveGame, mousePos,
+}: {
+  games: any[];
+  activeGame: number;
+  setActiveGame: (i: number) => void;
+  mousePos: { x: number; y: number };
+}) {
   const navigate = useNavigate();
-  const { data: games } = useGames();
-  const [slideIdx, setSlideIdx] = useState(0);
-  const [prevIdx, setPrevIdx] = useState(0);
-  const [direction, setDirection] = useState<"next" | "prev">("next");
-
-  const featured = games && games.length > 0
-    ? games.slice(0, 4)
-    : GAMES;
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setPrevIdx(slideIdx);
-      setDirection("next");
-      setSlideIdx(prev => (prev + 1) % featured.length);
-    }, 4500);
-    return () => clearInterval(timer);
-  }, [featured.length, slideIdx]);
-
-  const current = featured[slideIdx];
-  if (!current || featured.length === 0) return null;
+  const current = games[activeGame];
+  if (!current) return null;
 
   const art = gameArt(current.slug);
-  // Try: backend packages → mock GAMES packages → default
-  const backendPkgs = (current as any).packages;
-  const pkg = backendPkgs?.[0];
-  const rawPrice = pkg?.price_lkr ?? pkg?.priceLkr ?? pkg?.price;
-  const pkgPrice = Number(rawPrice ?? (GAMES.find(g => g.slug === current.slug)?.packages?.[0]?.price ?? 150));
-
-  // API returns snake_case keys (Prisma @map serializes field names)
-  const heroSrc = (current as any).hero_image || (current as any).card_image || (current as any).heroImage || (current as any).cardImage || (current as any).image_url || (current as any).imageUrl || art.image;
+  const heroImg = current.hero_image || current.card_image || art.image;
+  const packages: any[] = current.packages ?? GAMES.find((g) => g.slug === current.slug)?.packages ?? [];
+  const startingPrice = packages[0]?.price_lkr ?? packages[0]?.priceLkr ?? packages[0]?.price ?? 150;
 
   return (
-    <div className="relative animate-fade-up w-full max-w-[420px] lg:max-w-[460px] mx-auto" style={{ animationDelay: "0.3s" }}>
-      <div className="glass-panel rounded-3xl overflow-hidden relative border-primary/10 shadow-2xl">
-        {/* Image area with crossfade */}
-        <div className="relative h-48 sm:h-56 overflow-hidden bg-muted">
-          {/* Current slide image */}
-          <img
-            key={`img-${slideIdx}`}
-            src={heroSrc}
-            alt=""
-            className="absolute inset-0 w-full h-full object-cover animate-fade-in"
-            style={{ animationDuration: "0.6s" }}
+    <div className="animate-fade-up relative mx-auto w-full max-w-[460px]" style={{ animationDelay: "0.4s", perspective: "1200px" }}>
+      {/* Orbit rings */}
+      <div className="pointer-events-none absolute inset-[-55px] -z-10">
+        <div className="absolute inset-0 animate-spin-slow rounded-full border border-primary/10" style={{ borderStyle: "dashed" }} />
+        <div className="absolute inset-[18px] animate-spin-reverse rounded-full border border-primary/5" />
+        {[
+          { dur: "6s", r: "calc(50% + 38px)", color: "var(--primary)", size: 10, shadow: "var(--primary)" },
+          { dur: "10s", r: "calc(50% + 52px)", color: "oklch(0.72 0.18 310)", size: 7, shadow: "oklch(0.72 0.18 310)" },
+        ].map((orb, i) => (
+          <div
+            key={i}
+            className="absolute rounded-full"
+            style={{
+              width: orb.size, height: orb.size,
+              top: "50%", left: "50%",
+              marginTop: -orb.size / 2, marginLeft: -orb.size / 2,
+              background: orb.color,
+              boxShadow: `0 0 ${orb.size + 4}px ${Math.floor(orb.size / 2)}px ${orb.shadow}`,
+              animation: `orbit ${orb.dur} linear ${i % 2 === 1 ? "reverse" : ""} infinite`,
+              ["--orbit-r" as any]: orb.r,
+            }}
           />
-          <div className={`absolute inset-0 bg-gradient-to-t ${art.accent} to-transparent`} />
-          <div className="absolute inset-0 bg-gradient-to-b from-background/40 via-transparent to-background/80" />
+        ))}
+      </div>
 
-          {/* Game badge */}
-          <div className="absolute top-3 left-3 flex items-center gap-2">
-            <div className="rounded-xl bg-background/60 backdrop-blur-md px-2.5 py-1 border border-white/10">
-              <span className="text-xs font-bold text-white">Featured</span>
+      {/* Main 3-D card */}
+      <div
+        className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-gradient-to-br from-white/[0.08] to-white/[0.02] shadow-2xl backdrop-blur-2xl animate-card-breathe"
+        style={{
+          transform: `rotateY(${mousePos.x * 7}deg) rotateX(${mousePos.y * -5}deg)`,
+          transition: "transform 0.4s cubic-bezier(0.16,1,0.3,1)",
+          transformStyle: "preserve-3d",
+        }}
+      >
+        {/* Image area */}
+        <div className="relative h-56 overflow-hidden sm:h-64">
+          <img key={heroImg} src={heroImg} alt={current.name}
+            className="absolute inset-0 h-full w-full object-cover animate-fade-in"
+            style={{ animationDuration: "0.8s", scale: "1.05" }}
+          />
+          <div className={cn("absolute inset-0 opacity-50 bg-gradient-to-t to-transparent", art.accent)} />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent" />
+
+          <div className="absolute left-4 top-4" style={{ transform: "translateZ(30px)" }}>
+            <span className="inline-flex items-center gap-1.5 rounded-xl border border-white/20 bg-black/50 px-3 py-1.5 text-xs font-bold text-white backdrop-blur-md">
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" /> Instant Delivery
+            </span>
+          </div>
+          <div className="absolute right-4 top-4" style={{ transform: "translateZ(30px)" }}>
+            <div className="rounded-xl bg-primary/90 px-3 py-1.5 text-xs font-black text-primary-foreground shadow-lg shadow-primary/40 backdrop-blur-sm">
+              FROM LKR {Number(startingPrice).toLocaleString()}
             </div>
           </div>
-
-          {/* Slide dots */}
-          <div className="absolute bottom-3 right-3 flex gap-1.5">
-            {featured.map((_, i) => (
-              <button
-                key={i}
-                onClick={() => { setPrevIdx(slideIdx); setDirection(i > slideIdx ? "next" : "prev"); setSlideIdx(i); }}
-                className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${
-                  i === slideIdx ? "bg-white w-4" : "bg-white/40 hover:bg-white/60"
-                }`}
-              />
-            ))}
+          <div className="absolute bottom-0 left-0 right-0 p-5" style={{ transform: "translateZ(20px)" }}>
+            <h3 className="font-display text-2xl font-black text-white drop-shadow-lg">{current.name}</h3>
+            <p className="mt-0.5 text-xs text-white/70">{current.tagline ?? `${art.currency} Top-Up`}</p>
           </div>
         </div>
 
-        {/* Content */}
-        <div className="p-5 sm:p-6">
-          <h3 className="font-display text-lg font-bold text-foreground">{current.name}</h3>
-          <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
-            {(current as any).tagline ?? (current as any).publisher ?? `${art.currency} Top-Up`}
-          </p>
-
-          {/* Price highlight */}
-          <div className="mt-3 flex items-baseline gap-1.5">
-            <span className="text-2xl font-black text-primary">LKR {pkgPrice.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}</span>
-            <span className="text-xs text-muted-foreground">starting price</span>
+        {/* Card body */}
+        <div className="p-5">
+          <div className="mb-4 grid grid-cols-3 gap-2">
+            {packages.slice(0, 3).map((pkg: any, i: number) => {
+              const price = pkg.price_lkr ?? pkg.priceLkr ?? pkg.price ?? 0;
+              const label = pkg.label ?? pkg.amount ?? "Pack";
+              return (
+                <div key={i} className={cn("cursor-pointer rounded-xl border p-2.5 text-center transition-all hover:border-primary/50", i === 1 ? "border-primary/40 bg-primary/10" : "border-white/5 bg-white/[0.03]")}
+                  style={{ transform: "translateZ(10px)" }}>
+                  <p className="truncate text-[10px] font-semibold text-muted-foreground">{label}</p>
+                  <p className={cn("mt-0.5 text-sm font-black", i === 1 ? "text-primary" : "text-foreground")}>{Number(price).toLocaleString()}</p>
+                  <p className="text-[9px] text-muted-foreground">LKR</p>
+                </div>
+              );
+            })}
           </div>
 
           <button
             onClick={() => navigate({ to: "/games/$slug", params: { slug: current.slug } })}
-            className="mt-4 w-full h-11 rounded-xl bg-primary text-primary-foreground font-bold text-sm hover:brightness-110 transition-all shadow-lg shadow-primary/20 active:scale-[0.98]"
+            className="group relative w-full overflow-hidden rounded-xl bg-primary py-3 text-sm font-bold text-primary-foreground shadow-lg shadow-primary/30 transition-all duration-300 hover:brightness-110 hover:shadow-primary/50 active:scale-[0.98]"
+            style={{ transform: "translateZ(15px)" }}
           >
-            Top Up Now
+            <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/15 to-transparent transition-transform duration-500 group-hover:translate-x-full" />
+            <Zap className="mr-2 inline h-4 w-4 fill-primary-foreground/20" />
+            Top Up {current.name}
           </button>
         </div>
+      </div>
+
+      {/* Game thumbnail selectors */}
+      <div className="mt-5 flex justify-center gap-2">
+        {games.map((g: any, i: number) => {
+          const gArt = gameArt(g.slug);
+          const img = g.card_image || gArt.image;
+          return (
+            <button key={i} onClick={() => setActiveGame(i)}
+              className={cn("relative h-10 w-10 overflow-hidden rounded-xl border-2 transition-all duration-300",
+                i === activeGame
+                  ? "scale-110 border-primary shadow-[0_0_16px_-2px_var(--primary)]"
+                  : "border-white/10 opacity-50 hover:opacity-80 hover:border-white/20"
+              )}
+            >
+              <img src={img} alt={g.name} className="h-full w-full object-cover" />
+              {i === activeGame && <div className="absolute inset-0 bg-primary/20" />}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Auto-progress bar */}
+      <div className="mx-auto mt-3 h-0.5 w-32 overflow-hidden rounded-full bg-white/10">
+        <div key={activeGame} className="h-full rounded-full bg-primary"
+          style={{ animation: "hero-beam 3.5s linear forwards", width: "100%" }} />
       </div>
     </div>
   );
