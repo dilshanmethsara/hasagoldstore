@@ -69,6 +69,20 @@ export async function createApp(): Promise<Express> {
     }
   });
 
+  // Public stats endpoint (no auth required)
+  app.get('/stats', async (_req, res) => {
+    try {
+      const { prisma } = await import('./lib/prisma');
+      const [userCount, orderCount] = await Promise.all([
+        prisma.user.count(),
+        prisma.order.count({ where: { status: { in: ['completed', 'delivered', 'paid', 'processing'] } } }),
+      ]);
+      res.json({ userCount, orderCount });
+    } catch {
+      res.status(500).json({ error: 'Failed to fetch stats' });
+    }
+  });
+
   // Routes
   app.use('/auth', authRoutes);
   app.use('/users', userRoutes);

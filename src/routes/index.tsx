@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { GAMES } from "@/lib/games";
 import { useState, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
-import { useGames } from "@/lib/hooks/db";
+import { useGames, usePublicStats } from "@/lib/hooks/db";
 import { gameArt } from "@/lib/game-art";
 
 export const Route = createFileRoute("/")({
@@ -150,7 +150,7 @@ function Hero() {
             <h1 className="animate-fade-up font-display text-5xl font-black leading-[1.0] tracking-tighter text-foreground sm:text-6xl lg:text-7xl xl:text-8xl" style={{ animationDelay: "0.2s" }}>
               <span className="block">Level Up</span>
               <span className="block">Your Game.</span>
-              <span className="block mt-1 animate-text-shimmer">Instant Top-Up.</span>
+              <span className="block mt-1 text-gradient">Instant Top-Up.</span>
             </h1>
 
             <p className="animate-fade-up mt-6 max-w-lg text-base leading-relaxed text-muted-foreground sm:text-lg" style={{ animationDelay: "0.35s" }}>
@@ -172,21 +172,6 @@ function Hero() {
                   How It Works <ArrowRight className="h-4 w-4" />
                 </Button>
               </a>
-            </div>
-
-            {/* Mini stats */}
-            <div className="animate-fade-up mt-10 flex flex-wrap gap-8" style={{ animationDelay: "0.55s" }}>
-              {[
-                { val: "10s", label: "Avg Delivery" },
-                { val: "99.9%", label: "Success Rate" },
-                { val: "500K+", label: "Happy Gamers" },
-                { val: "24/7", label: "Support" },
-              ].map(({ val, label }) => (
-                <div key={label} className="flex flex-col">
-                  <span className="font-display text-2xl font-black text-gradient">{val}</span>
-                  <span className="text-[10px] uppercase tracking-widest text-muted-foreground">{label}</span>
-                </div>
-              ))}
             </div>
 
             {/* Social proof */}
@@ -414,20 +399,22 @@ function LiveTicker() {
 }
 
 function Stats() {
+  const { data: s } = usePublicStats();
+
   const stats = [
-    { value: "500K+", label: "Happy Users" },
-    { value: "2M+", label: "Orders Completed" },
+    { value: s?.userCount != null ? `${s.userCount.toLocaleString()}+` : "500K+", label: "Happy Gamers" },
+    { value: s?.orderCount != null ? `${s.orderCount.toLocaleString()}+` : "2M+", label: "Orders Completed" },
     { value: "99.9%", label: "Success Rate" },
     { value: "24/7", label: "Live Support" },
   ];
   return (
     <section className="mx-auto mt-8 max-w-7xl px-4 sm:px-6 lg:px-8">
-      <div className="glass-panel rounded-3xl overflow-hidden border-primary/10">
+      <div className="glass-panel overflow-hidden rounded-3xl border-primary/10">
         <div className="grid grid-cols-2 divide-y divide-border/60 sm:grid-cols-4 sm:divide-x sm:divide-border/60 sm:divide-y-0">
-          {stats.map((s, idx) => (
-            <div key={idx} className="px-3 py-6 text-center sm:px-6 sm:py-8 hover:bg-muted/10 transition-colors duration-300">
-              <p className="font-display text-3xl font-extrabold text-gradient sm:text-5xl">{s.value}</p>
-              <p className="mt-2 text-xs font-medium uppercase tracking-wider text-muted-foreground sm:text-sm">{s.label}</p>
+          {stats.map((st, idx) => (
+            <div key={idx} className="px-3 py-6 text-center transition-colors duration-300 hover:bg-muted/10 sm:px-6 sm:py-8">
+              <p className="font-display text-3xl font-extrabold text-gradient sm:text-5xl">{st.value}</p>
+              <p className="mt-2 text-xs font-medium uppercase tracking-wider text-muted-foreground sm:text-sm">{st.label}</p>
             </div>
           ))}
         </div>

@@ -11,6 +11,7 @@ import type {
 
 export const adminService = {
   stats: () => http.get<AdminStats>("/admin/stats"),
+  publicStats: () => http.get<{ userCount: number; orderCount: number }>("/stats"),
 
   listGames: () => http.get<Game[]>("/admin/games"),
 

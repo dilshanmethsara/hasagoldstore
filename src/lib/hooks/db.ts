@@ -378,6 +378,10 @@ export function useAdminStats() {
   return useQuery({ queryKey: ["admin", "stats"], queryFn: () => adminService.stats() });
 }
 
+export function usePublicStats() {
+  return useQuery({ queryKey: ["public", "stats"], queryFn: () => adminService.publicStats(), staleTime: 5 * 60 * 1000 });
+}
+
 export function useAdminOrders() {
   return useQuery({ 
     queryKey: ["admin", "orders"], 
