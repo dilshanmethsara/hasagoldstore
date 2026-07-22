@@ -17,23 +17,22 @@ export class SettingsService {
     };
   }
 
-  async update(
-    key: 'maintenance' | 'securityLock' | 'adminNotificationEmails' | 'adminNotificationPhones' | 'notifications',
-    value: { enabled: boolean; message: string } | string | { emails: string; phones: string },
-  ) {
+  async update(key: string, value: unknown) {
     const s = await this.getOrCreate();
-    let data: any = {};
+    let data: Record<string, unknown> = {};
 
-    if (key === 'maintenance' && typeof value === 'object') {
-      data = { maintenanceEnabled: value.enabled, maintenanceMessage: value.message };
-    } else if (key === 'securityLock' && typeof value === 'object') {
-      data = { securityLockEnabled: value.enabled, securityLockMessage: value.message };
-    } else if (key === 'adminNotificationEmails' && typeof value === 'string') {
-      data = { adminNotificationEmails: value };
-    } else if (key === 'adminNotificationPhones' && typeof value === 'string') {
-      data = { adminNotificationPhones: value };
-    } else if (key === 'notifications' && typeof value === 'object' && value !== null) {
-      const v = value as any;
+    if (key === 'maintenance') {
+      const v = value as { enabled: boolean; message: string };
+      data = { maintenanceEnabled: v.enabled, maintenanceMessage: v.message };
+    } else if (key === 'securityLock') {
+      const v = value as { enabled: boolean; message: string };
+      data = { securityLockEnabled: v.enabled, securityLockMessage: v.message };
+    } else if (key === 'adminNotificationEmails') {
+      data = { adminNotificationEmails: String(value) };
+    } else if (key === 'adminNotificationPhones') {
+      data = { adminNotificationPhones: String(value) };
+    } else if (key === 'notifications') {
+      const v = value as { emails: string; phones: string };
       data = {
         adminNotificationEmails: v.emails ?? '',
         adminNotificationPhones: v.phones ?? '',
