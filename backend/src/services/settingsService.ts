@@ -18,8 +18,8 @@ export class SettingsService {
   }
 
   async update(
-    key: 'maintenance' | 'securityLock' | 'adminNotificationEmails' | 'adminNotificationPhones',
-    value: { enabled: boolean; message: string } | string,
+    key: 'maintenance' | 'securityLock' | 'adminNotificationEmails' | 'adminNotificationPhones' | 'notifications',
+    value: { enabled: boolean; message: string } | string | { emails: string; phones: string },
   ) {
     const s = await this.getOrCreate();
     let data: any = {};
@@ -32,6 +32,12 @@ export class SettingsService {
       data = { adminNotificationEmails: value };
     } else if (key === 'adminNotificationPhones' && typeof value === 'string') {
       data = { adminNotificationPhones: value };
+    } else if (key === 'notifications' && typeof value === 'object' && value !== null) {
+      const v = value as any;
+      data = {
+        adminNotificationEmails: v.emails ?? '',
+        adminNotificationPhones: v.phones ?? '',
+      };
     }
 
     const updated = await prisma.systemSettings.update({ where: { id: s.id }, data });

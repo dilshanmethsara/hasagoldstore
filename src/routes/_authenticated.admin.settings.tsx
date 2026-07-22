@@ -45,8 +45,13 @@ function SettingsPage() {
   const removePhone = (p: string) => setAdminPhones((prev) => prev.filter((x) => x !== p));
 
   const saveNotifications = () => {
-    update.mutate({ key: "adminNotificationEmails", value: adminEmails });
-    update.mutate({ key: "adminNotificationPhones", value: adminPhones.join("\n") });
+    update.mutate({
+      key: "notifications",
+      value: {
+        emails: adminEmails,
+        phones: adminPhones.join("\n"),
+      },
+    });
   };
 
   return (
