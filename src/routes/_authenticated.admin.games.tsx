@@ -11,6 +11,7 @@ export const Route = createFileRoute("/_authenticated/admin/games")({
 type GameForm = Partial<Game> & {
   name: string;
   slug: string;
+  shop2topup_product_id?: number | null;
   card_image_file?: File | null;
   hero_image_file?: File | null;
 };
@@ -31,7 +32,7 @@ function GamesPage() {
           <h1 className="font-display text-3xl font-bold text-foreground sm:text-4xl">Games</h1>
           <p className="mt-1 text-sm text-muted-foreground">{games?.length ?? 0} titles in catalog.</p>
         </div>
-        <Button variant="hero" onClick={() => setEditing({ name: "", slug: "", is_live: true, is_featured: false, sort_order: 0, popularity: 0 })}>
+        <Button variant="hero" onClick={() => setEditing({ name: "", slug: "", is_live: true, is_featured: false, sort_order: 0, popularity: 0, shop2topup_product_id: null })}>
           <Plus className="h-4 w-4" /> Add game
         </Button>
       </div>
@@ -129,6 +130,16 @@ function GameFormDialog({ initial, onClose, onSave, saving }: { initial: GameFor
           <Field label="Slug (URL)"><input required value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-") })} className={inp} placeholder="free-fire" /></Field>
           <Field label="Publisher"><input value={form.publisher ?? ""} onChange={(e) => setForm({ ...form, publisher: e.target.value })} className={inp} /></Field>
           <Field label="Tagline"><input value={form.tagline ?? ""} onChange={(e) => setForm({ ...form, tagline: e.target.value })} className={inp} /></Field>
+          <Field label="Shop2topup Product ID (sub_category_id)">
+            <input
+              type="number"
+              value={form.shop2topup_product_id ?? ""}
+              onChange={(e) => setForm({ ...form, shop2topup_product_id: e.target.value ? Number(e.target.value) : null })}
+              className={inp}
+              placeholder="e.g. 999 — from Shop2topup catalog"
+            />
+            <p className="mt-1 text-[11px] text-muted-foreground">Required for live player ID validation. Find the sub_category_id in the Shop2topup catalog.</p>
+          </Field>
           <Field label="Card image"><input type="file" accept="image/*" onChange={(e) => setForm({ ...form, card_image_file: e.target.files?.[0] || null })} className={inp} />{form.card_image && <img src={form.card_image} className="mt-2 h-20 w-auto rounded-lg" />}</Field>
           <Field label="Hero image"><input type="file" accept="image/*" onChange={(e) => setForm({ ...form, hero_image_file: e.target.files?.[0] || null })} className={inp} />{form.hero_image && <img src={form.hero_image} className="mt-2 h-20 w-auto rounded-lg" />}</Field>
           <div className="grid grid-cols-2 gap-3">

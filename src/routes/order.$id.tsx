@@ -140,6 +140,12 @@ function OrderTrackingPage() {
               <h3 className="font-display text-base font-bold text-foreground">Delivered to</h3>
               <dl className="mt-4 space-y-2.5 text-sm">
                 <Row label="Player ID" value={order.player_id} />
+                {(order as any).player_name && (
+                  <div className="flex items-center justify-between gap-3">
+                    <dt className="text-muted-foreground">Player Name</dt>
+                    <dd className="min-w-0 truncate text-right font-semibold text-emerald-300">{(order as any).player_name}</dd>
+                  </div>
+                )}
                 <Row label="Region" value="Sri Lanka 🇱🇰" />
               </dl>
             </div>

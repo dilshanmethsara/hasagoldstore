@@ -151,6 +151,7 @@ export const createOrderSchema = z.object({
     .trim()
     .min(3, "Player ID is required")
     .max(40, "Player ID is too long"),
+  playerName: z.string().trim().max(80).optional(),
   serverId: z.string().trim().max(40).optional(),
   quantity: z.number().int().min(1).max(100).default(1),
   paymentMethod: paymentMethodSchema,

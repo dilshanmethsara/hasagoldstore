@@ -249,12 +249,14 @@ export function generateOrderConfirmationEmail(params: {
   gameName: string;
   packageLabel: string;
   playerId: string;
+  playerName?: string;
   totalLkr: string;
   paymentMethod: string;
   receiptUrl?: string | null;
 }): EmailTemplate {
-  const { orderNumber, gameName, packageLabel, playerId, totalLkr, paymentMethod, receiptUrl } = params;
+  const { orderNumber, gameName, packageLabel, playerId, playerName, totalLkr, paymentMethod, receiptUrl } = params;
   const subject = `Order Confirmed — #${orderNumber} 🎉`;
+  const playerDisplay = playerName ? `${playerName} (${playerId})` : playerId;
 
   const html = `<!DOCTYPE html>
 <html>
@@ -287,6 +289,7 @@ export function generateOrderConfirmationEmail(params: {
 <tr><td style="padding:8px 0;border-top:1px solid rgba(255,255,255,0.04);"><span style="color:#94a3b8;font-size:13px;">Game</span></td><td style="text-align:right;border-top:1px solid rgba(255,255,255,0.04);"><span style="color:#fff;font-weight:600;font-size:13px;">${gameName}</span></td></tr>
 <tr><td style="padding:8px 0;border-top:1px solid rgba(255,255,255,0.04);"><span style="color:#94a3b8;font-size:13px;">Package</span></td><td style="text-align:right;border-top:1px solid rgba(255,255,255,0.04);"><span style="color:#fff;font-weight:600;font-size:13px;">${packageLabel}</span></td></tr>
 <tr><td style="padding:8px 0;border-top:1px solid rgba(255,255,255,0.04);"><span style="color:#94a3b8;font-size:13px;">Player ID</span></td><td style="text-align:right;border-top:1px solid rgba(255,255,255,0.04);"><span style="color:#fff;font-weight:600;font-size:13px;">${playerId}</span></td></tr>
+${playerName ? `<tr><td style="padding:8px 0;border-top:1px solid rgba(255,255,255,0.04);"><span style="color:#94a3b8;font-size:13px;">Player Name</span></td><td style="text-align:right;border-top:1px solid rgba(255,255,255,0.04);"><span style="color:#10b981;font-weight:700;font-size:13px;">${playerName}</span></td></tr>` : ''}
 <tr><td style="padding:8px 0;border-top:1px solid rgba(255,255,255,0.04);"><span style="color:#94a3b8;font-size:13px;">Payment</span></td><td style="text-align:right;border-top:1px solid rgba(255,255,255,0.04);"><span style="color:#fff;font-weight:600;font-size:13px;text-transform:capitalize;">${paymentMethod.replace(/_/g, ' ')}</span></td></tr>
 <tr><td style="padding:8px 0;border-top:1px solid rgba(255,255,255,0.04);"><span style="color:#94a3b8;font-size:13px;">Status</span></td><td style="text-align:right;border-top:1px solid rgba(255,255,255,0.04);"><span style="color:#f59e0b;font-weight:600;font-size:13px;text-transform:capitalize;">Pending</span></td></tr>
 </table>
@@ -321,7 +324,7 @@ HASA GOLD STORE — Order Confirmation
 Order #: ${orderNumber}
 Game: ${gameName}
 Package: ${packageLabel}
-Player ID: ${playerId}
+Player ID: ${playerId}${playerName ? `\nPlayer Name: ${playerName}` : ''}
 Total: LKR ${totalLkr}
 Payment: ${paymentMethod}
 Status: Pending
@@ -355,10 +358,11 @@ export function generateOrderStatusUpdateEmail(params: {
   gameName: string;
   packageLabel: string;
   playerId: string;
+  playerName?: string;
   totalLkr: string;
   status: string;
 }): EmailTemplate {
-  const { orderNumber, gameName, packageLabel, playerId, totalLkr, status } = params;
+  const { orderNumber, gameName, packageLabel, playerId, playerName, totalLkr, status } = params;
   const meta = STATUS_META[status] ?? { label: status, color: '#94a3b8', icon: '📋', message: 'Your order status has been updated.' };
   const subject = `Order ${meta.label} — #${orderNumber} ${meta.icon}`;
 
@@ -393,6 +397,7 @@ export function generateOrderStatusUpdateEmail(params: {
 <tr><td style="padding:8px 0;border-top:1px solid rgba(255,255,255,0.04);"><span style="color:#94a3b8;font-size:13px;">Game</span></td><td style="text-align:right;border-top:1px solid rgba(255,255,255,0.04);"><span style="color:#fff;font-weight:600;font-size:13px;">${gameName}</span></td></tr>
 <tr><td style="padding:8px 0;border-top:1px solid rgba(255,255,255,0.04);"><span style="color:#94a3b8;font-size:13px;">Package</span></td><td style="text-align:right;border-top:1px solid rgba(255,255,255,0.04);"><span style="color:#fff;font-weight:600;font-size:13px;">${packageLabel}</span></td></tr>
 <tr><td style="padding:8px 0;border-top:1px solid rgba(255,255,255,0.04);"><span style="color:#94a3b8;font-size:13px;">Player ID</span></td><td style="text-align:right;border-top:1px solid rgba(255,255,255,0.04);"><span style="color:#fff;font-weight:600;font-size:13px;">${playerId}</span></td></tr>
+${playerName ? `<tr><td style="padding:8px 0;border-top:1px solid rgba(255,255,255,0.04);"><span style="color:#94a3b8;font-size:13px;">Player Name</span></td><td style="text-align:right;border-top:1px solid rgba(255,255,255,0.04);"><span style="color:#10b981;font-weight:700;font-size:13px;">${playerName}</span></td></tr>` : ''}
 <tr><td style="padding:8px 0;border-top:1px solid rgba(255,255,255,0.04);"><span style="color:#94a3b8;font-size:13px;">Status</span></td><td style="text-align:right;border-top:1px solid rgba(255,255,255,0.04);"><span style="font-weight:700;font-size:13px;color:${meta.color};">${meta.label}</span></td></tr>
 </table>
 <div style="margin-top:20px;padding-top:20px;border-top:2px solid rgba(245,158,11,0.3);text-align:right;">
@@ -429,7 +434,7 @@ Order Details:
   Order #:  ${orderNumber}
   Game:     ${gameName}
   Package:  ${packageLabel}
-  Player ID: ${playerId}
+  Player ID: ${playerId}${playerName ? `\n  Player Name: ${playerName}` : ''}
   Total:    LKR ${totalLkr}
   Status:   ${meta.label}
 

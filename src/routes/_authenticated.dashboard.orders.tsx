@@ -73,6 +73,9 @@ function MyOrders() {
                     <td className="px-4 py-3">
                       <p className="font-semibold text-foreground">{o.game_name}</p>
                       <p className="text-xs text-muted-foreground">{o.package_label}</p>
+                      {(o as any).player_name && (
+                        <p className="mt-0.5 text-[11px] font-medium text-emerald-400">👤 {(o as any).player_name}</p>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-muted-foreground">{formatDateTime(o.created_at)}</td>
                     <td className="px-4 py-3 font-semibold text-foreground">{lkr(o.total_lkr)}</td>
@@ -94,6 +97,9 @@ function MyOrders() {
                 </div>
                 <p className="mt-2 font-semibold text-foreground">{o.game_name}</p>
                 <p className="text-xs text-muted-foreground">{o.package_label}</p>
+                {(o as any).player_name && (
+                  <p className="mt-1 text-xs font-medium text-emerald-400">👤 {(o as any).player_name}</p>
+                )}
                 <div className="mt-3 flex items-center justify-between">
                   <span className="font-display text-lg font-bold text-gradient">{lkr(o.total_lkr)}</span>
                   <Link to="/order/$id" params={{ id: o.order_number }} className="text-xs font-medium text-primary">Track →</Link>

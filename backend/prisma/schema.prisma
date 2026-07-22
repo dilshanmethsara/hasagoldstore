@@ -140,19 +140,20 @@ model Profile {
 // ── Games & Packages ───────────────────────────────────────────────────────
 
 model Game {
-  id          String   @id @default(uuid()) @map("id")
-  slug        String   @unique @map("slug")
-  name        String   @map("name")
-  tagline     String?  @map("tagline")
-  publisher   String?  @map("publisher")
-  imageUrl    String?  @map("image_url")
-  cardImage   String?  @map("card_image")
-  heroImage   String?  @map("hero_image")
-  popularity  Int      @default(0) @map("popularity")
-  isFeatured  Boolean  @default(false) @map("is_featured")
-  sortOrder   Int      @default(0) @map("sort_order")
-  isLive      Boolean  @default(true) @map("is_live")
-  createdAt   DateTime @default(now()) @map("created_at")
+  id                  String   @id @default(uuid()) @map("id")
+  slug                String   @unique @map("slug")
+  name                String   @map("name")
+  tagline             String?  @map("tagline")
+  publisher           String?  @map("publisher")
+  imageUrl            String?  @map("image_url")
+  cardImage           String?  @map("card_image")
+  heroImage           String?  @map("hero_image")
+  popularity          Int      @default(0) @map("popularity")
+  isFeatured          Boolean  @default(false) @map("is_featured")
+  sortOrder           Int      @default(0) @map("sort_order")
+  isLive              Boolean  @default(true) @map("is_live")
+  shop2topupProductId Int?     @map("shop2topup_product_id")
+  createdAt           DateTime @default(now()) @map("created_at")
 
   packages    Package[]
   orders      Order[]
@@ -224,6 +225,7 @@ model Order {
   gameId        String        @map("game_id")
   packageId     String        @map("package_id")
   playerId      String        @map("player_id")
+  playerName    String?       @map("player_name")
   quantity      Int           @default(1) @map("quantity")
   subtotalLkr   Decimal       @map("subtotal_lkr")
   discountLkr   Decimal       @default(0) @map("discount_lkr")

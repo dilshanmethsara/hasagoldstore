@@ -69,6 +69,7 @@ export class OrderService {
         gameId: input.gameId,
         packageId: input.packageId,
         playerId: input.playerId,
+        playerName: input.playerName,
         quantity,
         subtotalLkr: subtotal,
         discountLkr: discount,

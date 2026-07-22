@@ -300,6 +300,7 @@ export type CreateOrderInput = {
   game: Game;
   pkg: Package;
   playerId: string;
+  playerName?: string;
   paymentMethod: string;
   quantity?: number;
   promoCode?: string;
@@ -316,6 +317,7 @@ export function useCreateOrder() {
         gameId: input.game.id,
         packageId: input.pkg.id,
         playerId: input.playerId,
+        playerName: input.playerName,
         paymentMethod: input.paymentMethod,
         quantity: input.quantity ?? 1,
         promoCode: input.promoCode,

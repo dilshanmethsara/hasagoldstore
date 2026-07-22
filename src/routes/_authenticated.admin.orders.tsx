@@ -19,7 +19,11 @@ function OrdersPage() {
 
   const filtered = (orders ?? []).filter((o) => {
     if (filter !== "all" && o.status !== filter) return false;
-    if (q && !o.order_number?.toLowerCase().includes(q.toLowerCase()) && !o.player_id?.toLowerCase().includes(q.toLowerCase())) return false;
+    if (q) {
+      const search = q.toLowerCase();
+      const haystack = `${o.order_number} ${o.player_id} ${(o as any).game_name} ${(o as any).package_label}`.toLowerCase();
+      if (!haystack.includes(search)) return false;
+    }
     return true;
   });
 
@@ -36,7 +40,7 @@ function OrdersPage() {
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Search order # or player ID"
+            placeholder="Search order #, game, player ID…"
             className="h-11 w-full rounded-xl border border-white/5 bg-white/5 pl-10 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary/40 focus:outline-none"
           />
         </div>
@@ -61,7 +65,8 @@ function OrdersPage() {
             <thead>
               <tr className="border-b border-white/5 text-left text-[11px] uppercase tracking-wider text-muted-foreground">
                 <th className="px-4 py-3">Order</th>
-                <th className="px-4 py-3">Player ID</th>
+                <th className="px-4 py-3">Game / Package</th>
+                <th className="px-4 py-3">Player</th>
                 <th className="px-4 py-3">Amount</th>
                 <th className="px-4 py-3">Method</th>
                 <th className="px-4 py-3">Receipt</th>
@@ -71,15 +76,24 @@ function OrdersPage() {
               </tr>
             </thead>
             <tbody>
-              {isLoading && <tr><td colSpan={8} className="px-4 py-10 text-center text-muted-foreground">Loading orders…</td></tr>}
-              {!isLoading && filtered.length === 0 && <tr><td colSpan={8} className="px-4 py-10 text-center text-muted-foreground">No orders match.</td></tr>}
+              {isLoading && <tr><td colSpan={9} className="px-4 py-10 text-center text-muted-foreground">Loading orders…</td></tr>}
+              {!isLoading && filtered.length === 0 && <tr><td colSpan={9} className="px-4 py-10 text-center text-muted-foreground">No orders match.</td></tr>}
               {filtered.map((o) => {
                 const details = o.payment_details as Record<string, string> | null;
                 const hasDetails = details && Object.keys(details).length > 0;
                 return (
                   <tr key={o.id} className="border-b border-white/5 last:border-b-0 hover:bg-white/[0.02]">
                     <td className="px-4 py-3 font-mono text-xs text-foreground">#{o.order_number}</td>
-                    <td className="px-4 py-3 text-muted-foreground">{o.player_id ?? "—"}</td>
+                    <td className="px-4 py-3">
+                      <p className="font-semibold text-foreground">{(o as any).game_name ?? "—"}</p>
+                      <p className="text-[11px] text-muted-foreground">{(o as any).package_label ?? ""}</p>
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground">
+                      <p className="font-mono text-xs">{o.player_id ?? "—"}</p>
+                      {(o as any).player_name && (
+                        <p className="mt-0.5 text-[11px] font-semibold text-emerald-400">{(o as any).player_name}</p>
+                      )}
+                    </td>
                     <td className="px-4 py-3 font-semibold text-foreground">{lkr(Number(o.total_lkr))}</td>
                     <td className="px-4 py-3">
                       <span className="rounded-full bg-white/5 px-2 py-0.5 text-[10px] font-bold uppercase text-muted-foreground">

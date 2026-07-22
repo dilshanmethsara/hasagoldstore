@@ -47,7 +47,7 @@ export class GameService {
       throw new ApiError('GAME_NOT_FOUND', 'Game not found');
     }
 
-    return game;
+    return { ...game, shop2topup_product_id: game.shop2topupProductId };
   }
 
   async getById(id: string) {
@@ -65,7 +65,7 @@ export class GameService {
       throw new ApiError('GAME_NOT_FOUND', 'Game not found');
     }
 
-    return game;
+    return { ...game, shop2topup_product_id: game.shop2topupProductId };
   }
 
   async create(data: {

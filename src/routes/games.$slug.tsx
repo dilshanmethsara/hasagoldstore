@@ -1,6 +1,19 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
-import { Check, ShieldCheck, Zap, Tag, ArrowRight, Sparkles, Info, Heart } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  Check,
+  ShieldCheck,
+  Zap,
+  Tag,
+  ArrowRight,
+  Sparkles,
+  Info,
+  Heart,
+  Loader2,
+  UserCheck,
+  UserX,
+  AlertCircle,
+} from "lucide-react";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { Button } from "@/components/ui/button";
@@ -9,6 +22,7 @@ import { useGame, usePackages, useGames, useFavorites, useToggleFavorite, type P
 import { gameArt } from "@/lib/game-art";
 import { lkr } from "@/lib/format";
 import { useAuth } from "@/lib/use-auth";
+import { http } from "@/api/httpClient";
 
 export const Route = createFileRoute("/games/$slug")({
   head: ({ params }) => ({
@@ -18,6 +32,103 @@ export const Route = createFileRoute("/games/$slug")({
   }),
   component: GamePage,
 });
+
+// ── Player validation types ───────────────────────────────────────────────
+
+type ValidationStatus = "idle" | "loading" | "valid" | "invalid" | "skipped";
+
+interface ValidatedPlayer {
+  player_id: string;
+  player_name: string;
+  region?: string;
+  [key: string]: string | undefined;
+}
+
+// ── Hook: debounced player validation ─────────────────────────────────────
+
+function usePlayerValidation(
+  gameId: string | undefined,
+  supportsValidation: boolean,
+  playerId: string,
+  serverId: string,
+  debounceMs = 800,
+) {
+  const [status, setStatus] = useState<ValidationStatus>("idle");
+  const [player, setPlayer] = useState<ValidatedPlayer | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    // Reset when inputs clear
+    if (!playerId || playerId.trim().length < 3) {
+      setStatus("idle");
+      setPlayer(null);
+      setErrorMsg(null);
+      return;
+    }
+
+    // If game doesn't support validation, mark as skipped so checkout is allowed
+    if (!supportsValidation || !gameId) {
+      setStatus("skipped");
+      setPlayer(null);
+      setErrorMsg(null);
+      return;
+    }
+
+    // Clear any pending timer
+    if (timerRef.current) clearTimeout(timerRef.current);
+
+    setStatus("loading");
+    setPlayer(null);
+    setErrorMsg(null);
+
+    timerRef.current = setTimeout(async () => {
+      abortRef.current?.abort();
+      const ctrl = new AbortController();
+      abortRef.current = ctrl;
+
+      try {
+        const result = await http.post<{ success: boolean; player: ValidatedPlayer }>(
+          "/games/validate-player",
+          {
+            gameId,
+            playerId: playerId.trim(),
+            ...(serverId ? { serverId } : {}),
+          },
+          { signal: ctrl.signal, timeoutMs: 12_000 },
+        );
+
+        if (result?.success && result.player) {
+          setPlayer(result.player);
+          setStatus("valid");
+        } else {
+          setStatus("invalid");
+          setErrorMsg("Could not validate player.");
+        }
+      } catch (err: any) {
+        if (err?.name === "AbortError" || ctrl.signal.aborted) return;
+        // GAME_NOT_CONFIGURED means this game has no shop2topup ID set yet — skip silently
+        if (err?.code === "GAME_NOT_CONFIGURED") {
+          setStatus("skipped");
+          return;
+        }
+        setStatus("invalid");
+        setErrorMsg(err?.message ?? "Player not found.");
+      }
+    }, debounceMs);
+
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+      abortRef.current?.abort();
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gameId, supportsValidation, playerId, serverId]);
+
+  return { status, player, errorMsg };
+}
+
+// ── Page component ────────────────────────────────────────────────────────
 
 function GamePage() {
   const { slug } = Route.useParams();
@@ -35,6 +146,11 @@ function GamePage() {
   const [promo, setPromo] = useState("");
   const [promoApplied, setPromoApplied] = useState<{ code: string; discount: number } | null>(null);
 
+  const supportsValidation = !!(game?.shop2topupProductId ?? (game as any)?.shop2topup_product_id);
+
+  const { status: validationStatus, player: validatedPlayer, errorMsg: validationError } =
+    usePlayerValidation(game?.id, supportsValidation, playerId, art.needsServerId ? serverId : "");
+
   // Use database images with fallback to mock art
   const heroImage = game?.hero_image ?? art.image;
   const cardImage = game?.card_image ?? art.image;
@@ -49,21 +165,41 @@ function GamePage() {
   const subtotal = selected ? Number(selected.price_lkr) : 0;
   const discount = promoApplied ? Math.round(subtotal * promoApplied.discount) : 0;
   const total = Math.max(0, subtotal - discount);
-  const canCheckout = !!selected && playerId.length >= 3 && (!art.needsServerId || serverId.length >= 1);
+
+  // Checkout is allowed when:
+  // - package selected
+  // - player ID entered (length >= 3)
+  // - server ID entered if required
+  // - validation passed OR game doesn't support validation (skipped)
+  const playerIdReady = playerId.trim().length >= 3 && (!art.needsServerId || serverId.length >= 1);
+  const validationOk =
+    validationStatus === "valid" ||
+    validationStatus === "skipped" ||
+    (validationStatus === "idle" && !supportsValidation);
+  const canCheckout = !!selected && playerIdReady && validationOk;
   const isFav = !!game && favorites.some((f) => f.game_id === game.id);
 
   if (isLoading) {
     return (
-      <div className="min-h-screen"><SiteHeader /><div className="mx-auto max-w-7xl px-4 py-20 text-center text-muted-foreground">Loading…</div><SiteFooter /></div>
+      <div className="min-h-screen">
+        <SiteHeader />
+        <div className="mx-auto max-w-7xl px-4 py-20 text-center text-muted-foreground">Loading…</div>
+        <SiteFooter />
+      </div>
     );
   }
   if (!game) {
     return (
-      <div className="min-h-screen"><SiteHeader />
+      <div className="min-h-screen">
+        <SiteHeader />
         <div className="grid min-h-[60vh] place-items-center text-center">
-          <div><h1 className="font-display text-3xl">Game not found</h1><Link to="/games" className="mt-4 inline-block text-primary">Browse all games</Link></div>
+          <div>
+            <h1 className="font-display text-3xl">Game not found</h1>
+            <Link to="/games" className="mt-4 inline-block text-primary">Browse all games</Link>
+          </div>
         </div>
-      <SiteFooter /></div>
+        <SiteFooter />
+      </div>
     );
   }
 
@@ -102,11 +238,13 @@ function GamePage() {
           <Card>
             <CardTitle n="1" title="Account Info" />
             <div className={cn("grid gap-4", art.needsServerId ? "sm:grid-cols-2" : "")}>
-              <FieldInput
-                label="Player ID"
+              <PlayerIdField
                 value={playerId}
                 onChange={setPlayerId}
-                placeholder="e.g. 123456789"
+                validationStatus={validationStatus}
+                validatedPlayer={validatedPlayer}
+                validationError={validationError}
+                supportsValidation={supportsValidation}
               />
               {art.needsServerId && (
                 <FieldInput
@@ -117,7 +255,9 @@ function GamePage() {
                 />
               )}
             </div>
-            <p className="mt-3 flex items-center gap-1.5 text-xs text-muted-foreground"><Info className="h-3.5 w-3.5" /> Make sure your Player ID is correct — orders can't be reversed.</p>
+            <p className="mt-3 flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Info className="h-3.5 w-3.5" /> Make sure your Player ID is correct — orders can't be reversed.
+            </p>
           </Card>
 
           {/* Packages */}
@@ -207,7 +347,14 @@ function GamePage() {
             </div>
 
             <dl className="mt-5 space-y-2.5 text-sm">
-              <Row label="Player ID" value={playerId || "—"} />
+              <Row
+                label="Player"
+                value={
+                  validatedPlayer?.player_name
+                    ? `${validatedPlayer.player_name} (${playerId})`
+                    : playerId || "—"
+                }
+              />
               {art.needsServerId && <Row label="Server" value={serverId || "—"} />}
               <Row label="Package" value={selected?.label ?? "—"} />
               <Row label="Subtotal" value={lkr(subtotal)} />
@@ -226,11 +373,22 @@ function GamePage() {
               disabled={!canCheckout}
               onClick={() => navigate({
                 to: "/checkout",
-                search: { game: game.slug, pkg: selected!.id, pid: playerId, sid: serverId, promo: promoApplied?.code ?? "" },
+                search: { game: game.slug, pkg: selected!.id, pid: playerId.trim(), sid: serverId, promo: promoApplied?.code ?? "", pname: validatedPlayer?.player_name ?? "" },
               })}
             >
               Proceed to Checkout <ArrowRight className="h-4 w-4" />
             </Button>
+
+            {/* Checkout hint */}
+            {supportsValidation && validationStatus === "invalid" && playerIdReady && (
+              <p className="mt-3 flex items-center gap-1.5 rounded-xl border border-red-500/20 bg-red-500/10 px-3 py-2 text-xs text-red-400">
+                <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                Player ID could not be verified. Please double-check before continuing.
+              </p>
+            )}
+            {supportsValidation && validationStatus === "loading" && (
+              <p className="mt-3 text-center text-xs text-muted-foreground">Verifying player…</p>
+            )}
 
             <ul className="mt-5 space-y-2 text-xs text-muted-foreground">
               <li className="flex items-center gap-2"><ShieldCheck className="h-3.5 w-3.5 text-primary" /> 100% secure encrypted checkout</li>
@@ -246,8 +404,8 @@ function GamePage() {
         <h3 className="mb-5 font-display text-2xl font-bold text-foreground">Other Games</h3>
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           {allGames.filter(g => g.slug !== game.slug).map(g => {
-            const art = gameArt(g.slug);
-            const imageUrl = g.card_image ?? art.image;
+            const gArt = gameArt(g.slug);
+            const imageUrl = g.card_image ?? gArt.image;
             return (
               <Link key={g.slug} to="/games/$slug" params={{ slug: g.slug }} className="group flex items-center gap-3 rounded-2xl border border-white/5 bg-white/[0.03] p-3 transition-all hover:border-primary/30">
                 <img src={imageUrl} alt="" className="h-12 w-12 rounded-xl object-cover" />
@@ -266,6 +424,84 @@ function GamePage() {
     </div>
   );
 }
+
+// ── Player ID field with validation badge ─────────────────────────────────
+
+function PlayerIdField({
+  value,
+  onChange,
+  validationStatus,
+  validatedPlayer,
+  validationError,
+  supportsValidation,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  validationStatus: ValidationStatus;
+  validatedPlayer: ValidatedPlayer | null;
+  validationError: string | null;
+  supportsValidation: boolean;
+}) {
+  return (
+    <label className="block">
+      <span className="mb-1.5 block text-xs font-medium text-muted-foreground">Player ID</span>
+      <div className="relative">
+        <input
+          value={value}
+          onChange={(e) => onChange(e.target.value.replace(/\D/g, ""))}
+          placeholder="e.g. 123456789"
+          inputMode="numeric"
+          pattern="[0-9]*"
+          className={cn(
+            "h-12 w-full rounded-xl border bg-white/5 px-4 pr-10 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none",
+            validationStatus === "valid"
+              ? "border-emerald-500/50 focus:border-emerald-500/70"
+              : validationStatus === "invalid"
+              ? "border-red-500/50 focus:border-red-500/70"
+              : "border-white/5 focus:border-primary/40",
+          )}
+        />
+        {/* Status icon */}
+        <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2">
+          {validationStatus === "loading" && (
+            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+          )}
+          {validationStatus === "valid" && (
+            <UserCheck className="h-4 w-4 text-emerald-400" />
+          )}
+          {validationStatus === "invalid" && (
+            <UserX className="h-4 w-4 text-red-400" />
+          )}
+        </span>
+      </div>
+
+      {/* Validation feedback */}
+      {validationStatus === "valid" && validatedPlayer && (
+        <div className="mt-2 flex items-center gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-3 py-2">
+          <UserCheck className="h-3.5 w-3.5 shrink-0 text-emerald-400" />
+          <div className="min-w-0">
+            <p className="truncate text-xs font-semibold text-emerald-300">{validatedPlayer.player_name}</p>
+            {validatedPlayer.region && (
+              <p className="text-[11px] text-emerald-400/70">{validatedPlayer.region}</p>
+            )}
+          </div>
+          <span className="ml-auto shrink-0 rounded-full bg-emerald-500/20 px-1.5 py-0.5 text-[10px] font-bold uppercase text-emerald-400">Verified</span>
+        </div>
+      )}
+      {validationStatus === "invalid" && (
+        <p className="mt-2 flex items-center gap-1.5 text-xs text-red-400">
+          <UserX className="h-3.5 w-3.5 shrink-0" />
+          {validationError ?? "Player ID not found. Please check and try again."}
+        </p>
+      )}
+      {supportsValidation && validationStatus === "idle" && value.length > 0 && value.length < 3 && (
+        <p className="mt-1.5 text-xs text-muted-foreground">Enter at least 3 characters to validate.</p>
+      )}
+    </label>
+  );
+}
+
+// ── Sub-components ────────────────────────────────────────────────────────
 
 function Card({ children }: { children: React.ReactNode }) {
   return <div className="glass-card rounded-3xl p-6">{children}</div>;

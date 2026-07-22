@@ -72,7 +72,14 @@ export class AdminService {
 
     const total = await prisma.order.count();
 
-    return { orders, total };
+    // Flatten game/package names so frontend can read game_name / package_label
+    const flatOrders = orders.map((o) => ({
+      ...o,
+      game_name: o.game?.name ?? null,
+      package_label: o.package?.label ?? null,
+    }));
+
+    return { orders: flatOrders, total };
   }
 
   async listGames() {
@@ -134,6 +141,7 @@ export class AdminService {
     isFeatured?: boolean;
     sortOrder?: number;
     isLive?: boolean;
+    shop2topupProductId?: number | null;
     // snake_case from frontend
     is_live?: boolean;
     is_featured?: boolean;
@@ -141,6 +149,7 @@ export class AdminService {
     hero_image?: string;
     sort_order?: number;
     popularity?: number;
+    shop2topup_product_id?: number | null;
   }) {
     // Map snake_case to camelCase, excluding snake_case keys entirely
     const mappedData = {
@@ -155,6 +164,7 @@ export class AdminService {
       isFeatured: data.is_featured ?? data.isFeatured,
       sortOrder: data.sort_order ?? data.sortOrder,
       isLive: data.is_live ?? data.isLive,
+      shop2topupProductId: data.shop2topup_product_id ?? data.shop2topupProductId,
     };
 
     if (mappedData.id) {

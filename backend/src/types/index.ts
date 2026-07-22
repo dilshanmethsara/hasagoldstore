@@ -56,6 +56,7 @@ export interface CreateOrderInput {
   gameId: string;
   packageId: string;
   playerId: string;
+  playerName?: string;
   paymentMethod: string;
   quantity?: number;
   promoCode?: string;

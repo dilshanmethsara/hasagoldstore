@@ -31,6 +31,7 @@ router.post('/', requireAuth, async (req: AuthRequest, res) => {
           gameName: order.gameName,
           packageLabel: order.packageLabel,
           playerId: order.playerId,
+          playerName: order.playerName ?? undefined,
           totalLkr: String(order.totalLkr),
           paymentMethod: order.paymentMethod,
           receiptUrl: order.receiptUrl,
@@ -45,6 +46,7 @@ router.post('/', requireAuth, async (req: AuthRequest, res) => {
           gameName: order.gameName,
           packageLabel: order.packageLabel,
           playerId: order.playerId,
+          playerName: order.playerName ?? undefined,
           totalLkr: String(order.totalLkr),
           paymentMethod: order.paymentMethod,
         });
@@ -130,6 +132,7 @@ router.patch('/:id/status', async (req, res) => {
             gameName: order.gameName,
             packageLabel: order.packageLabel,
             playerId: order.playerId,
+            playerName: order.playerName ?? undefined,
             totalLkr: String(order.totalLkr),
             status: order.status,
           });
@@ -143,6 +146,7 @@ router.patch('/:id/status', async (req, res) => {
             gameName: order.gameName,
             packageLabel: order.packageLabel,
             playerId: order.playerId,
+            playerName: order.playerName ?? undefined,
             totalLkr: String(order.totalLkr),
             status: order.status,
           });

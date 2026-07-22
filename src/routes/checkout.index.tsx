@@ -14,7 +14,7 @@ import { paymentMethodService } from "@/services/paymentMethodService";
 import { orderService } from "@/services/orderService";
 import type { PaymentMethodConfig, ExtraField } from "@/types";
 
-type Search = { game?: string; pkg?: string; pid?: string; sid?: string; promo?: string };
+type Search = { game?: string; pkg?: string; pid?: string; sid?: string; promo?: string; pname?: string };
 
 export const Route = createFileRoute("/checkout/")({
   validateSearch: (s: Record<string, unknown>): Search => ({
@@ -23,6 +23,7 @@ export const Route = createFileRoute("/checkout/")({
     pid: s.pid ? String(s.pid) : undefined,
     sid: s.sid ? String(s.sid) : undefined,
     promo: s.promo ? String(s.promo) : undefined,
+    pname: s.pname ? String(s.pname) : undefined,
   }),
   head: () => ({ meta: [{ title: "Checkout — HASA GOLD STORE" }] }),
   component: CheckoutPage,
@@ -124,7 +125,7 @@ function CheckoutPage() {
 
     try {
       const order = await createMut.mutateAsync({
-        game, pkg, playerId: search.pid ?? "",
+        game, pkg, playerId: search.pid ?? "", playerName: search.pname || undefined,
         paymentMethod: method, promoCode: search.promo || undefined,
         receiptUrl, paymentDetails: Object.keys(extraValues).length ? extraValues : undefined,
       } as any);
@@ -158,6 +159,7 @@ function CheckoutPage() {
               </div>
               <dl className="mt-4 grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
                 <Field label="Player ID" value={search.pid || "—"} />
+                {search.pname && <Field label="Player Name" value={search.pname} highlight />}
                 {gameArt(game.slug).needsServerId && <Field label="Server" value={search.sid || "—"} />}
                 <Field label="Promo" value={search.promo || "None"} />
               </dl>
@@ -295,11 +297,11 @@ function DynamicField({ field, value, onChange }: { field: ExtraField; value: st
 
 const inp = "h-12 w-full rounded-xl border border-white/5 bg-white/5 px-4 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary/40 focus:outline-none";
 
-function Field({ label, value }: { label: string; value: string }) {
+function Field({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
   return (
-    <div className="rounded-xl border border-white/5 bg-white/[0.03] px-3 py-2.5">
+    <div className={`rounded-xl border px-3 py-2.5 ${highlight ? "border-emerald-500/30 bg-emerald-500/10" : "border-white/5 bg-white/[0.03]"}`}>
       <dt className="text-[11px] uppercase tracking-wider text-muted-foreground">{label}</dt>
-      <dd className="mt-0.5 truncate text-sm font-semibold text-foreground">{value}</dd>
+      <dd className={`mt-0.5 truncate text-sm font-semibold ${highlight ? "text-emerald-300" : "text-foreground"}`}>{value}</dd>
     </div>
   );
 }

@@ -64,6 +64,9 @@ export interface Game {
   sort_order: number;
   is_live: boolean;
   created_at: ISODateString;
+  // shop2topup product ID — backend may return either casing depending on Prisma version
+  shop2topupProductId?: number | null;
+  shop2topup_product_id?: number | null;
 }
 
 export interface Package {

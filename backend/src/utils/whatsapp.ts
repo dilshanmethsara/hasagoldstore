@@ -80,10 +80,11 @@ export class WhatsAppService {
     gameName: string;
     packageLabel: string;
     playerId: string;
+    playerName?: string;
     totalLkr: string;
     paymentMethod: string;
   }): Promise<void> {
-    const { phone, orderNumber, gameName, packageLabel, playerId, totalLkr, paymentMethod } = params;
+    const { phone, orderNumber, gameName, packageLabel, playerId, playerName, totalLkr, paymentMethod } = params;
     const paymentLabel = paymentMethod.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 
     const message = [
@@ -101,6 +102,7 @@ export class WhatsAppService {
       `🎮 Game:     *${gameName}*`,
       `📦 Package:  *${packageLabel}*`,
       `🆔 Player ID: *${playerId}*`,
+      ...(playerName ? [`👤 Player:   *${playerName}*`] : []),
       `💳 Payment:  *${paymentLabel}*`,
       `━━━━━━━━━━━━━━━━━━━━━━`,
       `💰 *Total Paid: LKR ${totalLkr}*`,
@@ -124,10 +126,11 @@ export class WhatsAppService {
     gameName: string;
     packageLabel: string;
     playerId: string;
+    playerName?: string;
     totalLkr: string;
     status: string;
   }): Promise<void> {
-    const { phone, orderNumber, gameName, packageLabel, playerId, totalLkr, status } = params;
+    const { phone, orderNumber, gameName, packageLabel, playerId, playerName, totalLkr, status } = params;
 
     const STATUS_META: Record<string, { icon: string; label: string; note: string }> = {
       pending:    { icon: '⏳', label: 'Pending',    note: 'Your order is queued for processing.' },
@@ -153,6 +156,7 @@ export class WhatsAppService {
       `🎮 Game:     *${gameName}*`,
       `📦 Package:  *${packageLabel}*`,
       `🆔 Player ID: *${playerId}*`,
+      ...(playerName ? [`👤 Player:   *${playerName}*`] : []),
       `💰 Total:    *LKR ${totalLkr}*`,
       `━━━━━━━━━━━━━━━━━━━━━━`,
       `${meta.icon} Status: *${meta.label}*`,
