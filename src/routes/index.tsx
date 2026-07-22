@@ -345,51 +345,39 @@ function HeroGameShowcase({
 }
 
 function LiveTicker() {
-  const [orders, setOrders] = useState([
-    { id: 1, game: "Free Fire", amount: "520 Diamonds", player: "382****51", price: "$4.99", time: "2s ago" },
-    { id: 2, game: "PUBG Mobile", amount: "325 UC", player: "951****02", price: "$4.99", time: "5s ago" },
-    { id: 3, game: "Mobile Legends", amount: "257 Diamonds", player: "740****(2001)", price: "$4.49", time: "9s ago" },
-    { id: 4, game: "Blood Strike", amount: "680 Gold", player: "105****44", price: "$5.99", time: "14s ago" },
-  ]);
+  const { data: stats } = usePublicStats();
+  const [items, setItems] = useState<Array<{ id: number; game: string; pkg: string; player: string; price: string; time: string }>>([]);
 
-  // Append new simulated top-up orders periodically
   useEffect(() => {
-    const interval = setInterval(() => {
-      const randomGame = GAMES[Math.floor(Math.random() * GAMES.length)];
-      const randomPkg = randomGame.packages[Math.floor(Math.random() * randomGame.packages.length)];
-      const playerNum = Math.floor(100000 + Math.random() * 900000);
-      const serverNum = Math.floor(2000 + Math.random() * 8000);
-      
-      const newOrder = {
-        id: Date.now(),
-        game: randomGame.name,
-        amount: randomPkg.amount,
-        player: randomGame.slug === "mobile-legends" ? `${playerNum}****(${serverNum})` : `${playerNum}****`,
-        price: `$${randomPkg.price.toFixed(2)}`,
-        time: "Just now"
-      };
+    if (!stats?.ticker?.length) return;
+    const mapped = stats.ticker.map((t, i) => ({
+      id: i,
+      game: t.game,
+      pkg: t.pkg,
+      player: t.player,
+      price: t.price,
+      time: formatAgo(t.createdAt),
+    }));
+    setItems(mapped);
+  }, [stats]);
 
-      setOrders(prev => [newOrder, ...prev.slice(0, 3)]);
-    }, 5000);
-
-    return () => clearInterval(interval);
-  }, []);
+  if (!items.length) return null;
 
   return (
-    <div className="w-full border-y border-border/40 bg-muted/20 py-2.5 backdrop-blur-md overflow-hidden relative">
-      <div className="mx-auto max-w-7xl px-4 flex items-center justify-center flex-wrap gap-x-8 gap-y-2 text-xs">
-        <span className="flex items-center gap-1.5 font-bold text-primary shrink-0">
-          <Flame className="h-4 w-4 fill-primary/10 animate-bounce" />
-          LIVE DISPATCH:
+    <div className="relative w-full overflow-hidden border-y border-border/40 bg-muted/20 py-2.5 backdrop-blur-md">
+      <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-x-8 gap-y-2 px-4 text-xs">
+        <span className="flex shrink-0 items-center gap-1.5 font-bold text-primary">
+          <Flame className="h-4 w-4 animate-bounce fill-primary/10" />
+          LIVE ORDERS:
         </span>
-        <div className="flex items-center gap-6 overflow-x-auto no-scrollbar py-0.5">
-          {orders.map((order) => (
-            <div key={order.id} className="flex items-center gap-2 shrink-0 animate-fade-in">
-              <span className="font-semibold text-foreground">{order.game}</span>
-              <span className="text-muted-foreground">{order.amount}</span>
-              <span className="text-xs px-1.5 py-0.5 bg-primary/10 text-primary rounded font-mono">{order.player}</span>
-              <span className="text-emerald-400 font-semibold">{order.price}</span>
-              <span className="text-[10px] text-muted-foreground">({order.time})</span>
+        <div className="no-scrollbar flex items-center gap-6 overflow-x-auto py-0.5">
+          {items.map((o) => (
+            <div key={o.id} className="flex shrink-0 items-center gap-2 animate-fade-in">
+              <span className="font-semibold text-foreground">{o.game}</span>
+              <span className="text-muted-foreground">{o.pkg}</span>
+              <span className="rounded bg-primary/10 px-1.5 py-0.5 font-mono text-xs text-primary">{o.player}</span>
+              <span className="font-semibold text-emerald-400">{o.price}</span>
+              <span className="text-[10px] text-muted-foreground">({o.time})</span>
             </div>
           ))}
         </div>
@@ -398,12 +386,20 @@ function LiveTicker() {
   );
 }
 
+function formatAgo(dateStr: string): string {
+  const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
+  if (diff < 60) return `${diff}s ago`;
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  return `${Math.floor(diff / 86400)}d ago`;
+}
+
 function Stats() {
   const { data: s } = usePublicStats();
 
   const stats = [
-    { value: s?.userCount != null ? `${s.userCount.toLocaleString()}+` : "500K+", label: "Happy Gamers" },
-    { value: s?.orderCount != null ? `${s.orderCount.toLocaleString()}+` : "2M+", label: "Orders Completed" },
+    { value: s?.userCount != null ? s.userCount.toLocaleString() : "—", label: "Registered Users" },
+    { value: s?.orderCount != null ? s.orderCount.toLocaleString() : "—", label: "Orders Completed" },
     { value: "99.9%", label: "Success Rate" },
     { value: "24/7", label: "Live Support" },
   ];

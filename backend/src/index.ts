@@ -73,11 +73,26 @@ export async function createApp(): Promise<Express> {
   app.get('/stats', async (_req, res) => {
     try {
       const { prisma } = await import('./lib/prisma');
-      const [userCount, orderCount] = await Promise.all([
+      const [userCount, orderCount, recentOrders] = await Promise.all([
         prisma.user.count(),
-        prisma.order.count({ where: { status: { in: ['completed', 'delivered', 'paid', 'processing'] } } }),
+        prisma.order.count(),
+        prisma.order.findMany({
+          take: 8,
+          orderBy: { createdAt: 'desc' },
+          where: { status: { in: ['completed', 'delivered', 'paid', 'processing', 'pending'] } },
+          include: { game: { select: { name: true } }, package: { select: { label: true, priceLkr: true } } },
+        }),
       ]);
-      res.json({ userCount, orderCount });
+      const ticker = recentOrders.map((o) => ({
+        game: o.game?.name ?? 'Game',
+        pkg: o.package?.label ?? 'Package',
+        player: o.playerId.length > 6
+          ? `${o.playerId.slice(0, 3)}****${o.playerId.slice(-2)}`
+          : `${o.playerId.slice(0, 2)}****`,
+        price: `LKR ${Number(o.package?.priceLkr ?? 0).toLocaleString()}`,
+        createdAt: o.createdAt,
+      }));
+      res.json({ userCount, orderCount, ticker });
     } catch {
       res.status(500).json({ error: 'Failed to fetch stats' });
     }
