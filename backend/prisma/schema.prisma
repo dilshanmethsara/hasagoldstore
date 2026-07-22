@@ -453,12 +453,14 @@ model Announcement {
 // ── System Settings ────────────────────────────────────────────────────────
 
 model SystemSettings {
-  id               String   @id @default(uuid()) @map("id")
-  maintenanceEnabled Boolean @default(false) @map("maintenance_enabled")
-  maintenanceMessage  String  @default("") @map("maintenance_message")
-  securityLockEnabled  Boolean @default(false) @map("security_lock_enabled")
-  securityLockMessage  String  @default("") @map("security_lock_message")
-  updatedAt        DateTime @updatedAt @map("updated_at")
+  id                       String   @id @default(uuid()) @map("id")
+  maintenanceEnabled       Boolean  @default(false) @map("maintenance_enabled")
+  maintenanceMessage       String   @default("") @map("maintenance_message")
+  securityLockEnabled      Boolean  @default(false) @map("security_lock_enabled")
+  securityLockMessage      String   @default("") @map("security_lock_message")
+  adminNotificationEmails  String   @default("") @map("admin_notification_emails")
+  adminNotificationPhones  String   @default("") @map("admin_notification_phones")
+  updatedAt                DateTime @updatedAt @map("updated_at")
 
   @@map("system_settings")
 }

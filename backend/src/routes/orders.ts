@@ -8,6 +8,7 @@ import { AuthRequest } from '../middleware/auth';
 import { upload } from '../lib/cloudinary';
 import { sendOrderConfirmationEmail, sendOrderStatusUpdateEmail } from '../lib/email';
 import { whatsappService } from '../utils/whatsapp';
+import { settingsService } from '../services/settingsService';
 
 const router = Router();
 
@@ -53,6 +54,50 @@ router.post('/', requireAuth, async (req: AuthRequest, res) => {
       }
     } catch (notifyErr) {
       console.error('[Order] Failed to send order placed notifications:', notifyErr);
+    }
+
+    // Notify admin contacts
+    try {
+      const { emails: adminEmails, phones: adminPhones } = await settingsService.getAdminNotificationTargets();
+      const adminMsg = [
+        `╔══════════════════════╗`,
+        `   🏪 *HASA GOLD STORE*`,
+        `╚══════════════════════╝`,
+        ``,
+        `🔔 *New Order Received!*`,
+        ``,
+        `━━━━━━━━━━━━━━━━━━━━━━`,
+        `🔖 Order #:  *${order.orderNumber}*`,
+        `🎮 Game:     *${order.gameName}*`,
+        `📦 Package:  *${order.packageLabel}*`,
+        `🆔 Player ID: *${order.playerId}*`,
+        ...(order.playerName ? [`👤 Player:   *${order.playerName}*`] : []),
+        `💰 Total:    *LKR ${order.totalLkr}*`,
+        `💳 Payment:  *${order.paymentMethod.replace(/_/g, ' ')}*`,
+        `━━━━━━━━━━━━━━━━━━━━━━`,
+        ``,
+        `👉 https://www.hasagold.store/admin/orders`,
+      ].join('\n');
+
+      await Promise.allSettled([
+        ...adminEmails.map((email) =>
+          sendOrderConfirmationEmail(email, {
+            orderNumber: order.orderNumber,
+            gameName: order.gameName,
+            packageLabel: order.packageLabel,
+            playerId: order.playerId,
+            playerName: order.playerName ?? undefined,
+            totalLkr: String(order.totalLkr),
+            paymentMethod: order.paymentMethod,
+            receiptUrl: order.receiptUrl,
+          })
+        ),
+        ...adminPhones.map((phone) =>
+          whatsappService.sendMessage({ to: phone, message: adminMsg })
+        ),
+      ]);
+    } catch (adminNotifyErr) {
+      console.error('[Order] Failed to send admin notifications:', adminNotifyErr);
     }
 
     res.json(order);

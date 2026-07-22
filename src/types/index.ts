@@ -319,6 +319,8 @@ export interface AdminStats {
 export interface SystemSettings {
   maintenance: { enabled: boolean; message: string };
   security_lock: { enabled: boolean; message: string };
+  admin_notification_emails: string;
+  admin_notification_phones: string;
 }
 
 export interface AuthSession {

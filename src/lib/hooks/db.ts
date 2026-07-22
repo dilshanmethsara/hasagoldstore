@@ -580,13 +580,8 @@ export function useSystemSettings() {
 export function useUpdateSetting() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({
-      key,
-      value,
-    }: {
-      key: keyof SystemSettings;
-      value: { enabled: boolean; message: string };
-    }) => settingsService.update(key, value),
+    mutationFn: ({ key, value }: { key: string; value: unknown }) =>
+      settingsService.update(key, value),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["system_settings"] });
       toast.success("Settings updated");
