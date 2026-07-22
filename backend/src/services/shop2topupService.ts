@@ -45,7 +45,7 @@ export class Shop2topupService {
       signal: AbortSignal.timeout(10_000),
     });
 
-    const json = await res.json().catch(() => null);
+    const json = await res.json().catch(() => null) as Record<string, any> | null;
 
     if (!res.ok || !json?.success) {
       const err = json?.error;
